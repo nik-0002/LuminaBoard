@@ -1170,7 +1170,7 @@ def generate_campaign():
             segment_stats = {
                 "total_growers": len(seg),
                 "avg_farm_size": round(float(seg["grower_farm_size"].mean()), 1) if "grower_farm_size" in seg.columns else None,
-                "dominant_device": seg["device_type"].mode()[0] if "device_type" in seg.columns and len(seg) > 0 else "unknown",
+                "dominant_device": seg["device_type"].mode()[0] if "device_type" in seg.columns and len(seg) > 0 and not seg["device_type"].mode().empty else "unknown",
                 "smartphone_pct": round((seg["device_type"] == "smartphone").sum() / len(seg) * 100, 2) if "device_type" in seg.columns else 0,
                 "avg_age": round(float(seg["grower_age"].mean()), 1) if "grower_age" in seg.columns else None,
                 "language_distribution": seg["language"].value_counts().to_dict() if "language" in seg.columns else {}
@@ -1913,16 +1913,18 @@ def stream_audio():
             lang_name = (request.args.get("language") or "Hindi").lower().strip()
 
         audio_fp, mimetype = generate_audio_stream_data(text, lang_name)
+        ext = "wav" if mimetype == "audio/wav" else "mp3"
         return send_file(
             audio_fp,
             mimetype=mimetype,
             as_attachment=False,
-            download_name="stream.mp3"
+            download_name=f"stream.{ext}"
         )
     except Exception as e:
         logger.error(f"Audio stream unexpected error: {e}\n{traceback.format_exc()}")
         audio_fp, mimetype = generate_audio_stream_data("Lumina Board Advisory", "Hindi")
-        return send_file(audio_fp, mimetype=mimetype, as_attachment=False, download_name="stream.mp3")
+        ext = "wav" if mimetype == "audio/wav" else "mp3"
+        return send_file(audio_fp, mimetype=mimetype, as_attachment=False, download_name=f"stream.{ext}")
 
 
 @app.route("/api/audio/synthesize", methods=["POST"])
