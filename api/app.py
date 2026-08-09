@@ -361,42 +361,63 @@ def get_auto_dispatcher() -> Optional[AutomatedMessageDispatcher]:
 
 
 def get_datasets() -> Dict[str, pd.DataFrame]:
-    """Load all CSV datasets with proper type handling"""
+    """Load all CSV datasets lazily on-demand to prevent execution timeout"""
     global _datasets, _data_processor
     if not _datasets:
-        _data_processor = DataProcessor(DATA_DIR)
         _datasets = {}
+        _data_processor = DataProcessor(DATA_DIR)
         
-        # Load all CSVs comprehensively
-        csv_files = {
-            'growers': 'growers.csv',
-            'retailers': 'retailers.csv',
-            'retailer_pos': 'retailer_pos.csv',
-            'retailer_inventory': 'retailer_inventory_weekly.csv',
-            'retailer_visits': 'retailer_visit_log.csv',
-            'reps_territory': 'reps_territory.csv',
-            'campaigns': 'digital_funnel_weekly.csv',
-            'whatsapp': 'whatsapp_campaign.csv'
-        }
-        
-        for key, filename in csv_files.items():
-            filepath = os.path.join(DATA_DIR, filename)
-            if os.path.exists(filepath):
-                try:
-                    df = pd.read_csv(filepath, low_memory=False)
-                    # Convert date columns
-                    date_columns = [col for col in df.columns if 'date' in col.lower() or 'datetime' in col.lower()]
-                    for col in date_columns:
-                        try:
-                            df[col] = pd.to_datetime(df[col], errors='coerce')
-                        except:
-                            pass
-                    _datasets[key] = df
-                    logger.info(f"Loaded {key}: {len(df)} rows, {len(df.columns)} columns")
-                except Exception as e:
-                    logger.error(f"Error loading {filename}: {e}")
-    
-    return _datasets
+    csv_files = {
+        'growers': 'growers.csv',
+        'retailers': 'retailers.csv',
+        'retailer_pos': 'retailer_pos.csv',
+        'retailer_inventory': 'retailer_inventory_weekly.csv',
+        'retailer_visits': 'retailer_visit_log.csv',
+        'reps_territory': 'reps_territory.csv',
+        'campaigns': 'digital_funnel_weekly.csv',
+        'whatsapp': 'whatsapp_campaign.csv'
+    }
+
+    class LazyDict(dict):
+        def __getitem__(self, key):
+            self._load(key)
+            return _datasets.get(key)
+            
+        def get(self, key, default=None):
+            self._load(key)
+            return _datasets.get(key, default)
+            
+        def _load(self, key):
+            if key not in _datasets and key in csv_files:
+                filename = csv_files[key]
+                filepath = os.path.join(DATA_DIR, filename)
+                if os.path.exists(filepath):
+                    try:
+                        df = pd.read_csv(filepath, low_memory=False)
+                        date_columns = [col for col in df.columns if 'date' in col.lower() or 'datetime' in col.lower()]
+                        for col in date_columns:
+                            try:
+                                df[col] = pd.to_datetime(df[col], errors='coerce')
+                            except:
+                                pass
+                        _datasets[key] = df
+                        logger.info(f"Lazily loaded {key}: {len(df)} rows")
+                    except Exception as e:
+                        logger.error(f"Error lazily loading {key}: {e}")
+                        
+        def __contains__(self, key):
+            return key in csv_files
+            
+        def keys(self):
+            return csv_files.keys()
+            
+        def items(self):
+            return [(k, self[k]) for k in csv_files.keys()]
+            
+        def values(self):
+            return [self[k] for k in csv_files.keys()]
+
+    return LazyDict()
 
 
 def call_qwen_api(prompt: str, system_prompt: str = None, max_tokens: int = 2000) -> str:
@@ -530,17 +551,27 @@ def serve_dashboard():
 
 
 
-# ─── Health ───────────────────────────────────────────────────────────────────
 @app.route("/api/health", methods=["GET"])
 def health():
-    ds = get_datasets()
     camp_gen = get_campaign_gen()
     fast2sms = get_fast2sms_gateway()
+    
+    csv_files = {
+        'growers': 'growers.csv',
+        'retailers': 'retailers.csv',
+        'retailer_pos': 'retailer_pos.csv',
+        'retailer_inventory': 'retailer_inventory_weekly.csv',
+        'retailer_visits': 'retailer_visit_log.csv',
+        'reps_territory': 'reps_territory.csv',
+        'campaigns': 'digital_funnel_weekly.csv',
+        'whatsapp': 'whatsapp_campaign.csv'
+    }
+    available = [k for k, f in csv_files.items() if os.path.exists(os.path.join(DATA_DIR, f))]
+    
     return jsonify({
         "status": "ok",
         "timestamp": datetime.utcnow().isoformat(),
-        "datasets_loaded": list(ds.keys()),
-        "record_counts": {k: len(v) for k, v in ds.items()},
+        "datasets_available": available,
         "ai_engine": "Google Gemini 1.5 Flash API",
         "gemini_api_configured": bool(camp_gen and camp_gen.gemini_api_key),
         "fast2sms_configured": bool(fast2sms and fast2sms.api_key and not fast2sms.simulate)
