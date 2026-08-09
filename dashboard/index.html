@@ -1337,7 +1337,7 @@ function displayCampaignMessagesBox(data) {
             <button class="act-btn purple" style="padding:2px 8px;font-size:10px" onclick="downloadVernacularAudio('${escJ(c.audio_script||'')}', '${lang}')">📥 MP3</button>
           </div>
         </div>
-        <audio controls style="width:100%;height:34px;margin-bottom:6px;border-radius:6px;outline:none" src="/api/audio/stream?language=${encodeURIComponent(lang)}&text=${encodeURIComponent((c.audio_script||'').replace(/\[.*?\]/g,''))}"></audio>
+        <audio controls style="width:100%;height:34px;margin-bottom:6px;border-radius:6px;outline:none" src="${window.location.origin}/api/audio/stream?language=${encodeURIComponent(lang)}&text=${encodeURIComponent((c.audio_script||'').replace(/\[.*?\]/g,''))}"></audio>
         <div class="script-box">${(c.audio_script||'').replace(/\[([^\]]+)\]/g,'<span class="stage-dir">[$1]</span>').replace(/\n/g,'<br>')}</div>
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
@@ -1785,15 +1785,49 @@ async function playVernacularSpeech(text, lang) {
   if (!cleanText) return;
 
   toast('🎙️ Playing ' + lang + ' Vernacular Audio Advisory...');
+
+  // 1. Try Browser Native Speech Synthesis (Web Speech API) - Instant & Zero Latency
+  if ('speechSynthesis' in window) {
+    try {
+      const langMap = {
+        'Hindi': 'hi-IN', 'Telugu': 'te-IN', 'Marathi': 'mr-IN',
+        'Punjabi': 'pa-IN', 'Tamil': 'ta-IN', 'Kannada': 'kn-IN',
+        'Bengali': 'bn-IN', 'Gujarati': 'gu-IN', 'English': 'en-IN'
+      };
+      const targetLang = langMap[lang] || 'hi-IN';
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = targetLang;
+      utterance.rate = 0.9;
+      
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        const match = voices.find(v => v.lang.startsWith(targetLang.split('-')[0]) || v.lang === targetLang);
+        if (match) utterance.voice = match;
+      }
+
+      utterance.onend = () => toast('✅ Vernacular voice playback complete');
+      utterance.onerror = () => playAudioStreamFallback(cleanText, lang);
+
+      window.speechSynthesis.speak(utterance);
+      return;
+    } catch(e) {
+      console.warn('WebSpeech error, trying audio stream fallback', e);
+    }
+  }
+
+  // 2. Fallback to API Audio Stream
+  playAudioStreamFallback(cleanText, lang);
+}
+
+function playAudioStreamFallback(text, lang) {
   try {
-    const audioUrl = `/api/audio/stream?language=${encodeURIComponent(lang)}&text=${encodeURIComponent(cleanText)}`;
+    const audioUrl = `${window.location.origin}/api/audio/stream?language=${encodeURIComponent(lang)}&text=${encodeURIComponent(text)}`;
     activeAudioPlayer = new Audio(audioUrl);
-    activeAudioPlayer.onended = () => toast('✅ Audio advisory playback complete');
-    activeAudioPlayer.onerror = () => toast('⚠️ Audio playback issue: Check volume or click audio player bar');
-    
+    activeAudioPlayer.onended = () => toast('✅ Audio stream playback complete');
+    activeAudioPlayer.onerror = () => toast('▶ Press Play on the embedded Audio Player bar below!');
     const playPromise = activeAudioPlayer.play();
     if (playPromise !== undefined) {
-      playPromise.catch(error => {
+      playPromise.catch(() => {
         toast('▶ Press Play on the embedded Audio Player bar below!');
       });
     }
@@ -1804,20 +1838,18 @@ async function playVernacularSpeech(text, lang) {
 
 function stopSpeech() {
   if (activeAudioPlayer) {
-    activeAudioPlayer.pause();
-    activeAudioPlayer.currentTime = 0;
+    try { activeAudioPlayer.pause(); activeAudioPlayer.currentTime = 0; } catch(e){}
     activeAudioPlayer = null;
-    toast('⏹️ Speech stopped');
   }
   if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
+    try { window.speechSynthesis.cancel(); } catch(e){}
   }
 }
 
 async function downloadVernacularAudio(text, lang) {
   toast('⚡ Synthesizing ' + lang + ' MP3 Audio Advisory...');
   try {
-    const response = await fetch('/api/audio/synthesize', {
+    const response = await fetch(window.location.origin + '/api/audio/synthesize', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: text, language: lang })
@@ -1986,7 +2018,7 @@ async function generateCampaign2() {
               </button>
             </div>
           </div>
-          <audio controls style="width:100%;height:38px;margin-bottom:8px;border-radius:8px;outline:none" src="/api/audio/stream?language=${encodeURIComponent(lang)}&text=${encodeURIComponent(audioScript.replace(/\[.*?\]/g,''))}"></audio>
+          <audio controls style="width:100%;height:38px;margin-bottom:8px;border-radius:8px;outline:none" src="${window.location.origin}/api/audio/stream?language=${encodeURIComponent(lang)}&text=${encodeURIComponent(audioScript.replace(/\[.*?\]/g,''))}"></audio>
           <div style="background:var(--bg1);padding:12px;border-radius:var(--r);font-size:12px;line-height:1.5;margin-bottom:16px;color:var(--text-med);border:1px solid var(--border)">
             ${audioScript.replace(/\[([^\]]+)\]/g,'<span style="color:var(--accent2);font-weight:600">[$1]</span>').replace(/\n/g,'<br>')}
           </div>
