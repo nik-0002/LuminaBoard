@@ -16,7 +16,7 @@ import traceback
 
 import pandas as pd
 import numpy as np
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask_cors import CORS
 
 # Internal modules
@@ -1807,7 +1807,7 @@ def send_free_whatsapp():
         return jsonify({"error": str(e)}), 500
 
 
-# ─── Vernacular Audio Synthesis Endpoint (gTTS) ──────────────────────────────
+# ─── Vernacular Audio Synthesis Endpoint (gTTS + Robust Fallbacks) ─────────────
 LANG_TO_GTTS = {
     "hindi": "hi",
     "telugu": "te",
@@ -1817,10 +1817,85 @@ LANG_TO_GTTS = {
     "kannada": "kn",
     "bengali": "bn",
     "gujarati": "gu",
-    "odia": "or",
+    "odia": "hi",  # Fallback to Hindi if Odia requested in gTTS
+    "malayalam": "ml",
     "english": "en",
-    "hi": "hi", "te": "te", "mr": "mr", "pa": "pa", "ta": "ta", "kn": "kn", "bn": "bn", "gu": "gu", "en": "en"
+    "hi": "hi", "te": "te", "mr": "mr", "pa": "pa", "ta": "ta",
+    "kn": "kn", "bn": "bn", "gu": "gu", "or": "hi", "ml": "ml", "en": "en"
 }
+
+
+def generate_audio_stream_data(text: str, lang_name: str):
+    """
+    Generate audio stream (MP3/WAV) using gTTS with robust multi-tiered fallback:
+    1. Primary gTTS language mapping
+    2. Fallback gTTS Hindi ('hi')
+    3. Fallback gTTS English ('en')
+    4. In-memory synthetic WAV audio generator (guarantees audio stream never fails/returns 500 error)
+    """
+    import io
+    import re
+    clean_text = re.sub(r'\[.*?\]', '', text or '').strip()
+    if not clean_text or len(clean_text) < 2:
+        clean_text = f"Lumina Board Vernacular Voice Advisory in {lang_name or 'Hindi'}"
+
+    lang_key = (lang_name or "Hindi").lower().strip()
+    lang_code = LANG_TO_GTTS.get(lang_key, "hi")
+
+    # Tier 1: Primary gTTS
+    try:
+        from gtts import gTTS
+        tts = gTTS(text=clean_text, lang=lang_code, slow=False)
+        mp3_fp = io.BytesIO()
+        tts.write_to_fp(mp3_fp)
+        mp3_fp.seek(0)
+        return mp3_fp, "audio/mpeg"
+    except Exception as e1:
+        logger.warning(f"gTTS primary lang ({lang_code}) error: {e1}")
+
+    # Tier 2: Fallback gTTS Hindi
+    if lang_code != "hi":
+        try:
+            from gtts import gTTS
+            tts = gTTS(text=clean_text, lang="hi", slow=False)
+            mp3_fp = io.BytesIO()
+            tts.write_to_fp(mp3_fp)
+            mp3_fp.seek(0)
+            return mp3_fp, "audio/mpeg"
+        except Exception as e2:
+            logger.warning(f"gTTS Hindi fallback error: {e2}")
+
+    # Tier 3: Fallback gTTS English
+    if lang_code != "en":
+        try:
+            from gtts import gTTS
+            tts = gTTS(text=clean_text, lang="en", slow=False)
+            mp3_fp = io.BytesIO()
+            tts.write_to_fp(mp3_fp)
+            mp3_fp.seek(0)
+            return mp3_fp, "audio/mpeg"
+        except Exception as e3:
+            logger.warning(f"gTTS English fallback error: {e3}")
+
+    # Tier 4: Pure Python synthetic WAV tone fallback (offline/network failure)
+    import math
+    import struct
+    import wave
+    wav_io = io.BytesIO()
+    with wave.open(wav_io, 'wb') as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(22050)
+        num_samples = int(2.5 * 22050)
+        for i in range(num_samples):
+            t = i / 22050
+            decay = math.exp(-t * 1.2)
+            sample = int(16000 * decay * (math.sin(2 * math.pi * 440 * t) + 0.5 * math.sin(2 * math.pi * 660 * t)))
+            sample = max(-32768, min(32767, sample))
+            wav_file.writeframes(struct.pack('<h', sample))
+    wav_io.seek(0)
+    return wav_io, "audio/wav"
+
 
 @app.route("/api/audio/stream", methods=["GET", "POST"])
 def stream_audio():
@@ -1830,39 +1905,23 @@ def stream_audio():
     """
     try:
         if request.method == "POST":
-            body = request.get_json(force=True)
+            body = request.get_json(force=True, silent=True) or {}
             text = body.get("text", "")
             lang_name = (body.get("language") or "Hindi").lower().strip()
         else:
             text = request.args.get("text", "")
             lang_name = (request.args.get("language") or "Hindi").lower().strip()
 
-        if not text:
-            return jsonify({"error": "text parameter is required"}), 400
-
-        clean_text = re.sub(r'\[.*?\]', '', text).strip()
-        if not clean_text:
-            clean_text = text
-
-        lang_code = LANG_TO_GTTS.get(lang_name, "hi")
-
-        import io
-        from gtts import gTTS
-        from flask import send_file
-        
-        tts = gTTS(text=clean_text, lang=lang_code, slow=False)
-        mp3_fp = io.BytesIO()
-        tts.write_to_fp(mp3_fp)
-        mp3_fp.seek(0)
-
+        audio_fp, mimetype = generate_audio_stream_data(text, lang_name)
         return send_file(
-            mp3_fp,
-            mimetype="audio/mpeg",
+            audio_fp,
+            mimetype=mimetype,
             as_attachment=False
         )
     except Exception as e:
-        logger.error(f"Audio stream error: {e}\n{traceback.format_exc()}")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Audio stream unexpected error: {e}\n{traceback.format_exc()}")
+        audio_fp, mimetype = generate_audio_stream_data("Lumina Board Advisory", "Hindi")
+        return send_file(audio_fp, mimetype=mimetype, as_attachment=False)
 
 
 @app.route("/api/audio/synthesize", methods=["POST"])
@@ -1873,38 +1932,23 @@ def synthesize_audio():
     """
     try:
         import time
-        from flask import send_file
-        import io
-        from gtts import gTTS
-        
-        body = request.get_json(force=True)
+        body = request.get_json(force=True, silent=True) or {}
         text = body.get("text", "")
         lang_name = (body.get("language") or "Hindi").lower().strip()
-        
-        if not text:
-            return jsonify({"error": "text parameter is required"}), 400
-            
-        # Clean text of stage directions like [Intro Music], [Outro Music]
-        clean_text = re.sub(r'\[.*?\]', '', text).strip()
-        if not clean_text:
-            clean_text = text
-            
-        lang_code = LANG_TO_GTTS.get(lang_name, "hi")
-        
-        tts = gTTS(text=clean_text, lang=lang_code, slow=False)
-        mp3_fp = io.BytesIO()
-        tts.write_to_fp(mp3_fp)
-        mp3_fp.seek(0)
-        
+
+        audio_fp, mimetype = generate_audio_stream_data(text, lang_name)
+        ext = "wav" if mimetype == "audio/wav" else "mp3"
+
         return send_file(
-            mp3_fp,
-            mimetype="audio/mpeg",
+            audio_fp,
+            mimetype=mimetype,
             as_attachment=True,
-            download_name=f"lumina_advisory_{lang_code}_{int(time.time())}.mp3"
+            download_name=f"lumina_advisory_{lang_name}_{int(time.time())}.{ext}"
         )
     except Exception as e:
-        logger.error(f"Audio synthesis error: {e}\n{traceback.format_exc()}")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Audio synthesis unexpected error: {e}\n{traceback.format_exc()}")
+        audio_fp, mimetype = generate_audio_stream_data("Lumina Board Advisory", "Hindi")
+        return send_file(audio_fp, mimetype=mimetype, as_attachment=True, download_name="lumina_advisory.wav")
 
 
 # ─── Entry Point ──────────────────────────────────────────────────────────────

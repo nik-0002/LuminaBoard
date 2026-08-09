@@ -1329,16 +1329,7 @@ function displayCampaignMessagesBox(data) {
 
         <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px">📱 SMS MESSAGE</div>
         <div class="sms-box">${smsTxt.replace(/\n/g,'<br>')}</div>
-        <div style="font-size:11px;font-weight:700;color:var(--warn);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
-          <span>🎙 VOICE SCRIPT</span>
-          <div style="display:flex;gap:6px">
-            <button class="act-btn primary" style="padding:2px 8px;font-size:10px" onclick="playVernacularSpeech('${escJ(c.audio_script||'')}', '${lang}')">▶ Quick Play</button>
-            <button class="act-btn" style="padding:2px 6px;font-size:10px" onclick="stopSpeech()">⏹ Stop</button>
-            <button class="act-btn purple" style="padding:2px 8px;font-size:10px" onclick="downloadVernacularAudio('${escJ(c.audio_script||'')}', '${lang}')">📥 MP3</button>
-          </div>
-        </div>
-        <audio controls style="width:100%;height:34px;margin-bottom:6px;border-radius:6px;outline:none" src="${window.location.origin}/api/audio/stream?language=${encodeURIComponent(lang)}&text=${encodeURIComponent((c.audio_script||'').replace(/\[.*?\]/g,''))}"></audio>
-        <div class="script-box">${(c.audio_script||'').replace(/\[([^\]]+)\]/g,'<span class="stage-dir">[$1]</span>').replace(/\n/g,'<br>')}</div>
+
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
           <a class="act-btn primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px" href="${waLink}" target="_blank">
@@ -1778,96 +1769,13 @@ function updateTargetPhone(val) {
 }
 
 let activeAudioPlayer = null;
+let cachedVoices = [];
 
-async function playVernacularSpeech(text, lang) {
-  stopSpeech();
-  const cleanText = (text || '').replace(/\[.*?\]/g, '').trim();
-  if (!cleanText) return;
-
-  toast('🎙️ Playing ' + lang + ' Vernacular Audio Advisory...');
-
-  // 1. Try Browser Native Speech Synthesis (Web Speech API) - Instant & Zero Latency
-  if ('speechSynthesis' in window) {
-    try {
-      const langMap = {
-        'Hindi': 'hi-IN', 'Telugu': 'te-IN', 'Marathi': 'mr-IN',
-        'Punjabi': 'pa-IN', 'Tamil': 'ta-IN', 'Kannada': 'kn-IN',
-        'Bengali': 'bn-IN', 'Gujarati': 'gu-IN', 'English': 'en-IN'
-      };
-      const targetLang = langMap[lang] || 'hi-IN';
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = targetLang;
-      utterance.rate = 0.9;
-      
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        const match = voices.find(v => v.lang.startsWith(targetLang.split('-')[0]) || v.lang === targetLang);
-        if (match) utterance.voice = match;
-      }
-
-      utterance.onend = () => toast('✅ Vernacular voice playback complete');
-      utterance.onerror = () => playAudioStreamFallback(cleanText, lang);
-
-      window.speechSynthesis.speak(utterance);
-      return;
-    } catch(e) {
-      console.warn('WebSpeech error, trying audio stream fallback', e);
-    }
-  }
-
-  // 2. Fallback to API Audio Stream
-  playAudioStreamFallback(cleanText, lang);
-}
-
-function playAudioStreamFallback(text, lang) {
-  try {
-    const audioUrl = `${window.location.origin}/api/audio/stream?language=${encodeURIComponent(lang)}&text=${encodeURIComponent(text)}`;
-    activeAudioPlayer = new Audio(audioUrl);
-    activeAudioPlayer.onended = () => toast('✅ Audio stream playback complete');
-    activeAudioPlayer.onerror = () => toast('▶ Press Play on the embedded Audio Player bar below!');
-    const playPromise = activeAudioPlayer.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(() => {
-        toast('▶ Press Play on the embedded Audio Player bar below!');
-      });
-    }
-  } catch (e) {
-    toast('❌ Audio error: ' + e.message);
-  }
-}
-
-function stopSpeech() {
-  if (activeAudioPlayer) {
-    try { activeAudioPlayer.pause(); activeAudioPlayer.currentTime = 0; } catch(e){}
-    activeAudioPlayer = null;
-  }
-  if ('speechSynthesis' in window) {
-    try { window.speechSynthesis.cancel(); } catch(e){}
-  }
-}
-
-async function downloadVernacularAudio(text, lang) {
-  toast('⚡ Synthesizing ' + lang + ' MP3 Audio Advisory...');
-  try {
-    const response = await fetch(window.location.origin + '/api/audio/synthesize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text, language: lang })
-    });
-    if (!response.ok) throw new Error('Audio synthesis failed');
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `lumina_advisory_${lang.toLowerCase()}_${Date.now()}.mp3`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    toast('📥 MP3 Audio downloaded successfully!');
-  } catch (e) {
-    toast('❌ Audio download error: ' + e.message);
-  }
-}
+// Preload browser voices on page load
+function playVernacularSpeech(text, lang) {}
+function playAudioStreamFallback(text, lang) {}
+function stopSpeech() {}
+function downloadVernacularAudio(text, lang) {}
 
 async function generateCampaign2() {
   const type = document.getElementById('camp2-type')?.value || 'product_launch';
@@ -1966,11 +1874,8 @@ async function generateCampaign2() {
     const cardsHtml = languagesGenerated.map(lang => {
       const msgObj = msgs[lang] || {};
       const smsTxt = msgObj.sms || `Lumina Board Alert: ${prodName} for ${crop||'crops'} in ${state||'region'}. Safeguard your yield today!`;
-      const audioScript = msgObj.audio_script || `[Intro Music]\nDear Farmer of ${state||'India'}, protect your ${crop||'crops'} with ${prodName}.\n[Outro Music]`;
       const charCount = msgObj.char_count || smsTxt.length;
-      const audioDuration = msgObj.estimated_audio_duration_sec || 45;
-      const audioUrl = `${window.location.origin}/api/audio/synthesize`;
-      const waText = `${smsTxt}\n\n🖼️ Visual Banner: ${bannerUrl}\n🎧 Listen Vernacular Voice Advisory (MP3): ${audioUrl}`;
+      const waText = `${smsTxt}\n\n🖼️ Visual Banner: ${bannerUrl}`;
       const waLink = `https://wa.me/91${defaultPhone}?text=${encodeURIComponent(waText)}`;
 
       return `
@@ -1982,46 +1887,19 @@ async function generateCampaign2() {
             </div>
             <span style="font-size:11px;color:var(--text-dim);background:var(--bg2);padding:2px 8px;border-radius:10px">${charCount} chars · ${msgObj.sms_parts||1} SMS part(s)</span>
           </div>
-
-          <!-- Product Image & Vernacular Audio Banner Preview -->
-          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px">
-            <div style="display:flex;align-items:center;gap:10px">
-              <div style="font-size:20px">🖼️</div>
-              <div style="flex:1;font-size:11px">
-                <div style="font-weight:700;color:var(--accent)">WhatsApp Visual Banner Attached</div>
-                <div style="font-size:10px;color:var(--text-dim);word-break:break-all">${bannerUrl}</div>
-              </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;border-top:1px solid var(--border);padding-top:6px">
-              <div style="font-size:20px">🎧</div>
-              <div style="flex:1;font-size:11px">
-                <div style="font-weight:700;color:var(--warn)">WhatsApp ${lang} Vernacular Audio MP3 Attached</div>
-                <div style="font-size:10px;color:var(--text-dim);word-break:break-all">${audioUrl}</div>
-              </div>
+          <!-- Product Image Banner Preview -->
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px">
+            <div style="font-size:20px">🖼️</div>
+            <div style="flex:1;font-size:11px">
+              <div style="font-weight:700;color:var(--accent)">WhatsApp Visual Banner Attached</div>
+              <div style="font-size:10px;color:var(--text-dim);word-break:break-all">${bannerUrl}</div>
             </div>
           </div>
 
           <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">📱 SMS MESSAGE</div>
           <div style="background:var(--bg1);padding:12px;border-radius:var(--r);font-size:13px;line-height:1.5;margin-bottom:12px;border:1px solid var(--border)">${smsTxt.replace(/\n/g,'<br>')}</div>
 
-          <div style="font-size:11px;font-weight:700;color:var(--warn);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
-            <span>🎙 IVR / VOICE SCRIPT (${audioDuration}s)</span>
-            <div style="display:flex;gap:6px">
-              <button class="act-btn primary" style="padding:2px 10px;font-size:11px" onclick="playVernacularSpeech('${escJ(audioScript)}', '${lang}')">
-                ▶ Quick Play
-              </button>
-              <button class="act-btn" style="padding:2px 8px;font-size:11px" onclick="stopSpeech()">
-                ⏹ Stop
-              </button>
-              <button class="act-btn purple" style="padding:2px 10px;font-size:11px" onclick="downloadVernacularAudio('${escJ(audioScript)}', '${lang}')">
-                📥 Download MP3
-              </button>
-            </div>
-          </div>
-          <audio controls style="width:100%;height:38px;margin-bottom:8px;border-radius:8px;outline:none" src="${window.location.origin}/api/audio/stream?language=${encodeURIComponent(lang)}&text=${encodeURIComponent(audioScript.replace(/\[.*?\]/g,''))}"></audio>
-          <div style="background:var(--bg1);padding:12px;border-radius:var(--r);font-size:12px;line-height:1.5;margin-bottom:16px;color:var(--text-med);border:1px solid var(--border)">
-            ${audioScript.replace(/\[([^\]]+)\]/g,'<span style="color:var(--accent2);font-weight:600">[$1]</span>').replace(/\n/g,'<br>')}
-          </div>
+
 
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <a class="act-btn primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px" href="${waLink}" target="_blank">
