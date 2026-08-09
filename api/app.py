@@ -1916,12 +1916,13 @@ def stream_audio():
         return send_file(
             audio_fp,
             mimetype=mimetype,
-            as_attachment=False
+            as_attachment=False,
+            download_name="stream.mp3"
         )
     except Exception as e:
         logger.error(f"Audio stream unexpected error: {e}\n{traceback.format_exc()}")
         audio_fp, mimetype = generate_audio_stream_data("Lumina Board Advisory", "Hindi")
-        return send_file(audio_fp, mimetype=mimetype, as_attachment=False)
+        return send_file(audio_fp, mimetype=mimetype, as_attachment=False, download_name="stream.mp3")
 
 
 @app.route("/api/audio/synthesize", methods=["POST"])
