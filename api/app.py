@@ -35,13 +35,19 @@ from messaging.auto_dispatcher import AutomatedMessageDispatcher
 from utils.data_processors import DataProcessor
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
+# Configure logging handlers
+log_handlers = [logging.StreamHandler()]
+if not os.environ.get("VERCEL"):
+    try:
+        os.makedirs("../logs", exist_ok=True)
+        log_handlers.append(logging.FileHandler("../logs/api.log"))
+    except Exception:
+        pass
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
-    handlers=[
-        logging.FileHandler("../logs/api.log"),
-        logging.StreamHandler()
-    ]
+    handlers=log_handlers
 )
 logger = logging.getLogger("lumina.api")
 
