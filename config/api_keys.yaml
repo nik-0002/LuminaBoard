@@ -1,0 +1,73 @@
+# API Keys and Configuration (use environment variables in production)
+ollama:
+  base_url: "http://localhost:11434"
+  model: "qwen2.5"
+  temperature: 0.7
+  max_tokens: 512
+
+gemini:
+  enabled: true
+  api_key: ""
+  model: "gemini-1.5-flash"
+
+huggingface:
+  model_id: "espnet/kan-bayashi_ljspeech_vits"
+  device: "cpu"
+
+messaging:
+  # Primary Test Phone Number
+  default_test_phone: "8978518496"
+
+  # ─── Fast2SMS Gateway (Free Indian SMS) ──────────────────────────────────
+  fast2sms:
+    enabled: true
+    simulate: false  # Live Fast2SMS Mode Active
+    api_key: ""
+    route: "q"
+
+  # ─── MSG91 SMS Gateway (India-optimized) ─────────────────────────────────
+  msg91:
+    enabled: true
+    simulate: true  # Set to false when you have real credentials
+    auth_key: "${MSG91_AUTH_KEY}"  # Get from https://control.msg91.com
+    sender_id: "SYNGTA"  # 6-character approved sender ID
+    template_id: ""  # Optional: DLT template ID for transactional SMS
+    use_simple_api: true  # true = Simple SMS API (v4), false = Flow API (v5)
+    route: "4"  # "4" = transactional, "1" = promotional
+
+  # ─── WhatsApp Channel ────────────────────────────────────────────────────
+  whatsapp:
+    enabled: true
+    mode: "simulate"  # "adb", "business_api", or "simulate"
+    # ADB mode settings
+    adb:
+      device_id: ""  # Leave empty for auto-detect
+    # WhatsApp Business Cloud API settings
+    business_api:
+      access_token: "${WHATSAPP_ACCESS_TOKEN}"  # Meta Graph API token
+      phone_number_id: "${WHATSAPP_PHONE_NUMBER_ID}"  # From WhatsApp Business Account
+      business_account_id: "${WHATSAPP_BUSINESS_ACCOUNT_ID}"  # WABA ID
+      webhook_verify_token: "${WHATSAPP_WEBHOOK_VERIFY_TOKEN}"  # For webhook setup
+
+  # ─── ADB (Android Debug Bridge) - Legacy ────────────────────────────────
+  adb:
+    enabled: true
+    phone_number: "+91XXXXXXXXXX"
+
+  # ─── Twilio (Fallback SMS/WhatsApp) ─────────────────────────────────────
+  twilio:
+    enabled: true
+    simulate: true  # Set to false when you have real credentials
+    account_sid: "${TWILIO_ACCOUNT_SID}"
+    auth_token: "${TWILIO_AUTH_TOKEN}"
+    phone_number: "+1XXXXXXXXXX"
+
+gov_apis:
+  imd_weather: "https://api.openweathermap.org/data/2.5"
+  agrisnet: "https://agrisnet.dadisnet.gov.in/api"
+  pest_surveillance: "https://ppqs.gov.in/api"
+
+vector_store:
+  type: "faiss"
+  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+  index_path: "./data/vector_indices"

@@ -1,0 +1,21 @@
+trend_detection:
+  model_type: "isolation_forest"
+  contamination: 0.1
+  n_estimators: 100
+  random_state: 42
+
+engagement_prediction:
+  model_type: "xgboost"
+  max_depth: 6
+  learning_rate: 0.1
+  n_estimators: 100
+
+crop_segmentation:
+  model_type: "kmeans"
+  n_clusters: 15
+  random_state: 42
+
+campaign_optimization:
+  algorithm: "thompson_sampling"
+  epsilon: 0.1
+  decay_rate: 0.95

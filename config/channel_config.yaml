@@ -1,0 +1,45 @@
+channels:
+  whatsapp_adb:
+    type: "adb"
+    priority: 1
+    rate_limit: 1000  # messages per hour
+    retry_attempts: 3
+    timeout: 30
+    
+  whatsapp_twilio:
+    type: "api"
+    provider: "twilio"
+    priority: 2
+    rate_limit: 500
+    retry_attempts: 3
+    timeout: 30
+    
+  sms:
+    type: "sms"
+    priority: 3
+    rate_limit: 2000
+    retry_attempts: 5
+    timeout: 20
+    
+  voice:
+    type: "voice"
+    priority: 4
+    rate_limit: 100
+    retry_attempts: 2
+    timeout: 60
+
+farmer_preferences:
+  language_support:
+    - "hi"
+    - "ta"
+    - "te"
+    - "ka"
+    - "mr"
+    - "gu"
+    - "bn"
+    - "pa"
+  
+  device_compatibility:
+    smart_phone: ["whatsapp_adb", "whatsapp_twilio", "sms", "voice"]
+    feature_phone: ["sms", "voice"]
+    low_connectivity: ["sms", "voice"]
