@@ -1338,7 +1338,7 @@ function displayCampaignMessagesBox(data) {
             <button class="act-btn purple" style="padding:2px 8px;font-size:10px" onclick="downloadMessageAudio('${escJ(smsTxt)}', '${lang}')">📥 MP3</button>
           </div>
         </div>
-        <audio controls style="width:100%;height:34px;margin-bottom:6px;border-radius:6px;outline:none" src="${window.location.origin}/api/audio/stream?language=${encodeURIComponent(lang)}&text=${encodeURIComponent(smsTxt)}"></audio>
+        <div style="width:100%;height:34px;margin-bottom:6px;border-radius:6px;background:var(--bg2,#f0f0f0);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-dim,#888);border:1px solid var(--border,#ddd)">🔊 Click ▶ Play above to hear this message via browser speech</div>
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
           <a class="act-btn primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px" href="${waLink}" target="_blank">
@@ -1778,20 +1778,86 @@ function updateTargetPhone(val) {
 }
 
 let activeAudioPlayer = null;
+let activeSpeechUtterance = null;
 
-// ─── Audio Playback: reads the exact SMS message text via gTTS backend ───
+// ─── Language mapping for Web Speech API (BCP 47 codes) ───
+const LANG_TO_SPEECH_CODE = {
+  'hindi': 'hi-IN', 'telugu': 'te-IN', 'marathi': 'mr-IN',
+  'punjabi': 'pa-IN', 'tamil': 'ta-IN', 'kannada': 'kn-IN',
+  'bengali': 'bn-IN', 'gujarati': 'gu-IN', 'odia': 'or-IN',
+  'malayalam': 'ml-IN', 'english': 'en-IN', 'urdu': 'ur-IN',
+  'assamese': 'as-IN', 'nepali': 'ne-IN',
+  'hi': 'hi-IN', 'te': 'te-IN', 'mr': 'mr-IN', 'pa': 'pa-IN',
+  'ta': 'ta-IN', 'kn': 'kn-IN', 'bn': 'bn-IN', 'gu': 'gu-IN',
+  'or': 'or-IN', 'ml': 'ml-IN', 'en': 'en-IN', 'ur': 'ur-IN'
+};
+
+function getSpeechLangCode(lang) {
+  const key = (lang || 'hindi').toLowerCase().trim();
+  return LANG_TO_SPEECH_CODE[key] || 'hi-IN';
+}
+
+// ─── Audio Playback: Browser Web Speech API (primary) + gTTS backend (fallback) ───
 async function playMessageAudio(text, lang) {
   stopAudio();
   const cleanText = (text || '').trim();
   if (!cleanText) { toast('⚠️ No message text to play'); return; }
   toast('🔊 Playing ' + lang + ' message audio...');
+
+  // --- Primary: Browser Web Speech API (works without any backend) ---
+  if ('speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel(); // clear any queued speech
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = getSpeechLangCode(lang);
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+
+      // Try to find the best matching voice
+      const voices = window.speechSynthesis.getVoices();
+      const langCode = getSpeechLangCode(lang);
+      const langPrefix = langCode.split('-')[0];
+      const matchedVoice = voices.find(v => v.lang === langCode)
+        || voices.find(v => v.lang.startsWith(langPrefix))
+        || voices.find(v => v.lang.startsWith('hi'))
+        || null;
+      if (matchedVoice) utterance.voice = matchedVoice;
+
+      utterance.onend = () => { toast('✅ Playback complete'); activeSpeechUtterance = null; };
+      utterance.onerror = (e) => {
+        console.warn('Web Speech error, trying gTTS backend:', e);
+        activeSpeechUtterance = null;
+        playMessageAudioViaBackend(cleanText, lang);
+      };
+
+      activeSpeechUtterance = utterance;
+      window.speechSynthesis.speak(utterance);
+      return;
+    } catch (speechErr) {
+      console.warn('Web Speech API failed, falling back to gTTS:', speechErr);
+    }
+  }
+
+  // --- Fallback: gTTS backend API ---
+  await playMessageAudioViaBackend(cleanText, lang);
+}
+
+async function playMessageAudioViaBackend(text, lang) {
   try {
     const response = await fetch(window.location.origin + '/api/audio/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: cleanText, language: lang })
+      body: JSON.stringify({ text: text, language: lang })
     });
-    if (!response.ok) { toast('⚠️ Audio server error'); return; }
+    if (!response.ok) {
+      toast('⚠️ Audio server unavailable — use ▶ Play button to retry');
+      return;
+    }
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('audio')) {
+      toast('⚠️ Audio server returned invalid data');
+      return;
+    }
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     activeAudioPlayer = new Audio(url);
@@ -1799,12 +1865,18 @@ async function playMessageAudio(text, lang) {
     activeAudioPlayer.onerror = () => toast('⚠️ Could not play audio');
     await activeAudioPlayer.play();
   } catch (e) {
-    console.error('Audio play error:', e);
-    toast('⚠️ Audio playback failed');
+    console.error('Backend audio play error:', e);
+    toast('⚠️ Audio playback failed — check connection');
   }
 }
 
 function stopAudio() {
+  // Stop Web Speech API
+  if (activeSpeechUtterance) {
+    try { window.speechSynthesis.cancel(); } catch(e){}
+    activeSpeechUtterance = null;
+  }
+  // Stop HTML5 Audio player
   if (activeAudioPlayer) {
     try { activeAudioPlayer.pause(); activeAudioPlayer.currentTime = 0; } catch(e){}
     activeAudioPlayer = null;
@@ -1821,7 +1893,9 @@ async function downloadMessageAudio(text, lang) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: cleanText, language: lang })
     });
-    if (!response.ok) throw new Error('Synthesis failed');
+    if (!response.ok) throw new Error('Server unreachable');
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('audio')) throw new Error('Server returned non-audio data');
     const blob = await response.blob();
     const ext = blob.type.includes('wav') ? 'wav' : 'mp3';
     const url = window.URL.createObjectURL(blob);
@@ -1834,8 +1908,14 @@ async function downloadMessageAudio(text, lang) {
     URL.revokeObjectURL(url);
     toast('📥 MP3 downloaded!');
   } catch (e) {
-    toast('❌ Download error: ' + e.message);
+    toast('❌ Download error: ' + e.message + ' — MP3 download requires the backend API');
   }
+}
+
+// Preload voices (some browsers load them async)
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
 }
 
 // Keep old function names as aliases so any leftover references don't break
@@ -1973,7 +2053,7 @@ async function generateCampaign2() {
               <button class="act-btn purple" style="padding:2px 10px;font-size:11px" onclick="downloadMessageAudio('${escJ(smsTxt)}', '${lang}')">📥 MP3</button>
             </div>
           </div>
-          <audio controls style="width:100%;height:38px;margin-bottom:12px;border-radius:8px;outline:none" src="${window.location.origin}/api/audio/stream?language=${encodeURIComponent(lang)}&text=${encodeURIComponent(smsTxt)}"></audio>
+          <div style="width:100%;height:38px;margin-bottom:12px;border-radius:8px;background:var(--bg2,#f0f0f0);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-dim,#888);border:1px solid var(--border,#ddd)">🔊 Click ▶ Play above to hear this message via browser speech</div>
 
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <a class="act-btn primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px" href="${waLink}" target="_blank">
