@@ -49,6 +49,18 @@ logger = logging.getLogger("lumina.api")
 app = Flask(__name__, static_folder="../dashboard", static_url_path="")
 CORS(app)
 
+class ApiPrefixMiddleware(object):
+    """Ensure Flask matches routes whether Vercel passes /api/route or /route"""
+    def __init__(self, app):
+        self.app = app
+    def __call__(self, environ, start_response):
+        path = environ.get('PATH_INFO', '')
+        if path and not path.startswith('/api'):
+            environ['PATH_INFO'] = '/api' + path
+        return self.app(environ, start_response)
+
+app.wsgi_app = ApiPrefixMiddleware(app.wsgi_app)
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.environ.get("DATA_DIR", os.path.join(BASE_DIR, "data"))
 QWEN_API_URL = os.environ.get("QWEN_API_URL", "http://localhost:11434/api/generate")
@@ -1315,8 +1327,13 @@ def send_campaign_sms():
     custom_context = body.get("context", "")
     custom_numbers = body.get("custom_numbers") or body.get("phone_numbers") or body.get("target_numbers")
     test_phone_override = body.get("test_phone_number") or DEFAULT_TEST_PHONE
+    gemini_key_req = body.get("gemini_api_key") or ""
     
     try:
+        camp_gen = get_campaign_gen()
+        if gemini_key_req and camp_gen:
+            camp_gen.update_gemini_api_key(gemini_key_req)
+
         orchestrator = get_messaging_orchestrator()
         if not orchestrator:
             return jsonify({"error": "Messaging orchestrator not available"}), 503

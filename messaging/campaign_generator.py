@@ -369,7 +369,7 @@ class CampaignMessageGenerator:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key.strip()}"
             for attempt in range(2):
                 try:
-                    resp = requests.post(url, headers=headers, json=payload, timeout=15)
+                    resp = requests.post(url, headers=headers, json=payload, timeout=5)
                     if resp.status_code == 200:
                         data = resp.json()
                         text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
@@ -409,8 +409,8 @@ class CampaignMessageGenerator:
                 logger.warning(f"Unsupported language: {lang}, skipping")
                 continue
 
-            if idx_l > 0:
-                time.sleep(1.2)  # Pause 1.2s between Gemini API requests to prevent 429 rate limit
+            if idx_l > 0 and not os.environ.get("VERCEL"):
+                time.sleep(0.5)  # Short pause between Gemini API requests
 
             try:
                 sms = self._generate_sms(campaign_type, product, crop, state, lang, context, segment_stats)
