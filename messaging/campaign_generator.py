@@ -51,7 +51,7 @@ LANGUAGE_META = {
     "Tamil": {
         "code": "ta",
         "script": "Tamil",
-        "greeting": "வணக்கம் விவசாயி தாத்தா",
+        "greeting": "வணக்கம் விவசாயி நண்பரே",
         "sms_limit": 160,
         "audio_wpm": 85
     },
@@ -168,6 +168,24 @@ TEMPLATES = {
             "વધુ માહિતી માટે આજે જ તમારા નજીકના Lumina Board ડીલરનો સંપર્ક કરો.\n"
             "Lumina Board India — તમારો વિશ્વાસુ ખેતી સાથી."
         ),
+        "Odia": (
+            "{greeting},\n"
+            "{state}ର {crop} ଚାଷୀ ଭାଇମାନଙ୍କ ପାଇଁ Lumina Board ଆଣିଛି ଏକ ଅତ୍ୟାଧୁନିକ ଫସଲ ସୁରକ୍ଷା ସମାଧାନ — {product}। "
+            "{crop} ଫସଲରେ ଛତୁ ଜନିତ ରୋଗ ଓ କୀଟ ସମସ୍ୟା ଦୂର କରିବାକୁ {product} ଅତ୍ୟନ୍ତ ପ୍ରଭାବଶାଳୀ। "
+            "ଏହା ଗଛକୁ ଭିତରୁ ମଜବୁତ କରି ଦୀର୍ଘ ସମୟ ସୁରକ୍ଷା ଦେଇଥାଏ। "
+            "ସଠିକ ସମୟରେ ସିଫାରିସ ମାତ୍ରାରେ ସ୍ପ୍ରେ କରନ୍ତୁ ଓ ଫସଲର ଉତ୍ପାଦନ ବଢ଼ାନ୍ତୁ। "
+            "ଅଧିକ ତଥ୍ୟ ପାଇଁ ଆଜି ନିକଟତମ Lumina Board ଡିଲରଙ୍କ ସହ ଯୋଗାଯୋଗ କରନ୍ତୁ।\n"
+            "Lumina Board India — ଆପଣଙ୍କ ବିଶ୍ୱସ୍ତ କୃଷି ସାଥୀ।"
+        ),
+        "Malayalam": (
+            "{greeting},\n"
+            "{state}ലെ {crop} കർഷകർക്കായി Lumina Board അവതരിപ്പിക്കുന്നു ഒരു വിപ്ലവകരമായ വിള സംരക്ഷണ പരിഹാരം — {product}. "
+            "{crop} വിളയിൽ കുമിൾ രോഗങ്ങളും കീടബാധയും തടയാൻ {product} അത്യന്തം ഫലപ്രദമാണ്. "
+            "ഇത് ചെടിക്ക് ഉള്ളിൽ നിന്ന് ശക്തമായ സംരക്ഷണം നൽകുകയും വിളവ് വർദ്ധിപ്പിക്കുകയും ചെയ്യുന്നു. "
+            "ശുപാർശ ചെയ്ത അളവിൽ ശരിയായ സമയത്ത് തളിക്കുക. "
+            "കൂടുതൽ വിവരങ്ങൾക്ക് ഇന്ന് തന്നെ അടുത്തുള്ള Lumina Board ഡീലറെ ബന്ധപ്പെടുക.\n"
+            "Lumina Board India — നിങ്ങളുടെ വിശ്വസ്ത കൃഷി പങ്കാളി."
+        ),
         "English": (
             "{greeting},\n"
             "Lumina Board presents an advanced crop protection solution for {crop} growers in {state} — {product}. "
@@ -214,6 +232,14 @@ TEMPLATES = {
         "Gujarati": (
             "{greeting},\nમર્યાદિત સમય ઓફર! {product} પર વિશેષ છૂટ।"
             " {crop} સુરક્ષા માટે અત્યારે સંપર્ક કરો। {state}માં માત્ર ૩ દિવસ।"
+        ),
+        "Odia": (
+            "{greeting},\nସୀମିତ ସମୟ ଅଫର! {product} ଉପରେ ବିଶେଷ ଛାଡ଼।"
+            " {crop} ସୁରକ୍ଷା ପାଇଁ ଏବେ ଯୋଗାଯୋଗ କରନ୍ତୁ। {state}ରେ ମାତ୍ର ୩ ଦିନ।\nLumina Board"
+        ),
+        "Malayalam": (
+            "{greeting},\nപരിമിത സമയ ഓഫർ! {product}ന് പ്രത്യേക കിഴിവ്."
+            " {crop} സംരക്ഷണത്തിനായി ഇപ്പോൾ ബന്ധപ്പെടുക. {state}ൽ 3 ദിവസം മാത്രം.\nLumina Board"
         )
     },
     "season_reminder": {
@@ -250,8 +276,16 @@ TEMPLATES = {
             " Lumina Board-র {product} দিয়ে ফসল সুরক্ষিত রাখুন। {state}-এর কৃষকরা আজই ডিলারের সাথে দেখা করুন।"
         ),
         "Gujarati": (
-            "{greeting},\n{crop} વાવণીનો સાચો સમય આવ્યો છે।"
+            "{greeting},\n{crop} વાવણીનો સાચો સમય આવ્યો છે।"
             " Lumina Board ના {product} થી પાક સુરક્ષિત રાખો। {state} ના ખેડૂતો આજે જ ડીલરને મળો।"
+        ),
+        "Odia": (
+            "{greeting},\n{crop} ବୁଣିବାର ସଠିକ ସମୟ ଆସିଗଲା।"
+            " Lumina Board ର {product} ଦ୍ୱାରା ଫସଲ ସୁରକ୍ଷିତ ରଖନ୍ତୁ। {state}ର ଚାଷୀ ଆଜି ଡିଲରଙ୍କୁ ଭେଟନ୍ତୁ।"
+        ),
+        "Malayalam": (
+            "{greeting},\n{crop} വിതയ്ക്കാനുള്ള ശരിയായ സമയം വന്നു."
+            " Lumina Board ന്റെ {product} ഉപയോഗിച്ച് വിള സംരക്ഷിക്കുക. {state}ലെ കർഷകരേ, ഇന്ന് ഡീലറെ കാണുക."
         )
     }
 }
@@ -316,6 +350,111 @@ Lumina Board India — Your Farming Partner."
 Lumina Board India — ਕਿਸਾਨ ਦਾ ਸਾਥੀ।"
 
 [ਸੰਗੀਤ - ਫੇਡ ਆਊਟ]
+""",
+    "Telugu": """
+[ఆడియో స్క్రిప్ట్ - {duration} సెకన్లు]
+[ప్రారంభం - ఉత్సాహపూరిత సంగీతం]
+
+"రైతు అన్నదమ్ములారా, నమస్కారం!
+
+{campaign_body}
+
+గుర్తుంచుకోండి — Lumina Board తో మీ పంట, మీ భవిష్యత్తు సురక్షితం.
+మరిన్ని వివరాలకు మీ సమీప Lumina Board డీలర్‌ను సంప్రదించండి.
+
+Lumina Board India — రైతు బంధు."
+
+[సంగీతం - ఫేడ్ అవుట్]
+""",
+    "Tamil": """
+[ஒலிப்பதிவு - {duration} வினாடிகள்]
+[தொடக்கம் - உற்சாகமான இசை]
+
+"விவசாயி நண்பர்களே, வணக்கம்!
+
+{campaign_body}
+
+நினைவில் கொள்ளுங்கள் — Lumina Board உடன் உங்கள் பயிர், உங்கள் எதிர்காலம் பாதுகாப்பாக.
+கூடுதல் தகவலுக்கு உங்கள் அருகிலுள்ள Lumina Board டீலரை அணுகவும்.
+
+Lumina Board India — விவசாயியின் நம்பிக்கை."
+
+[இசை - மெல்ல முடிவு]
+""",
+    "Kannada": """
+[ಆಡಿಯೋ ಸ್ಕ್ರಿಪ್ಟ್ - {duration} ಸೆಕೆಂಡುಗಳು]
+[ಪ್ರಾರಂಭ - ಉತ್ಸಾಹಜನಕ ಸಂಗೀತ]
+
+"ರೈತ ಬಂಧುಗಳೇ, ನಮಸ್ಕಾರ!
+
+{campaign_body}
+
+ನೆನಪಿಡಿ — Lumina Board ಜೊತೆ ನಿಮ್ಮ ಬೆಳೆ, ನಿಮ್ಮ ಭವಿಷ್ಯ ಸುರಕ್ಷಿತ.
+ಹೆಚ್ಚಿನ ಮಾಹಿತಿಗಾಗಿ ಹತ್ತಿರದ Lumina Board ಡೀಲರ್ ಅನ್ನು ಸಂಪರ್ಕಿಸಿ.
+
+Lumina Board India — ರೈತನ ನಂಬಿಕಸ್ಥ ಸಂಗಾತಿ."
+
+[ಸಂಗೀತ - ಫೇಡ್ ಔಟ್]
+""",
+    "Bengali": """
+[অডিও স্ক্রিপ্ট - {duration} সেকেন্ড]
+[শুরু - উদ্দীপনামূলক সংগীত]
+
+"কৃষক ভাই ও বোনেরা, নমস্কার!
+
+{campaign_body}
+
+মনে রাখবেন — Lumina Board-র সাথে আপনার ফসল, আপনার ভবিষ্যৎ সুরক্ষিত।
+আরও তথ্যের জন্য আপনার নিকটস্থ Lumina Board ডিলারের সাথে যোগাযোগ করুন।
+
+Lumina Board India — কৃষকের সাথী।"
+
+[সংগীত - ফেড আউট]
+""",
+    "Gujarati": """
+[ઓડિયો સ્ક્રિપ્ટ - {duration} સેકન્ડ]
+[શરૂઆત - ઉત્સાહવર્ધક સંગીત]
+
+"ખેડૂત ભાઈઓ અને બહેનો, નમસ્તે!
+
+{campaign_body}
+
+યાદ રાખો — Lumina Board સાથે તમારો પાક, તમારું ભવિષ્ય સુરક્ષિત છે.
+વધુ માહિતી માટે તમારા નજીકના Lumina Board ડીલરનો સંપર્ક કરો.
+
+Lumina Board India — ખેડૂતનો સાથી."
+
+[સંગીત - ફેડ આઉટ]
+""",
+    "Odia": """
+[ଅଡ଼ିଓ ସ୍କ୍ରିପ୍ଟ - {duration} ସେକେଣ୍ଡ]
+[ଆରମ୍ଭ - ଉତ୍ସାହଜନକ ସଙ୍ଗୀତ]
+
+"ଚାଷୀ ଭାଇ ଓ ଭଉଣୀମାନେ, ନମସ୍କାର!
+
+{campaign_body}
+
+ମନେ ରଖନ୍ତୁ — Lumina Board ସହ ଆପଣଙ୍କ ଫସଲ, ଆପଣଙ୍କ ଭବିଷ୍ୟତ ସୁରକ୍ଷିତ।
+ଅଧିକ ତଥ୍ୟ ପାଇଁ ନିକଟତମ Lumina Board ଡିଲରଙ୍କ ସହ ଯୋଗାଯୋଗ କରନ୍ତୁ।
+
+Lumina Board India — ଚାଷୀଙ୍କ ସାଥୀ।"
+
+[ସଙ୍ଗୀତ - ଫେଡ଼ ଆଉଟ]
+""",
+    "Malayalam": """
+[ഓഡിയോ സ്ക്രിപ്റ്റ് - {duration} സെക്കൻഡ്]
+[തുടക്കം - ആവേശകരമായ സംഗീതം]
+
+"കർഷക സഹോദരങ്ങളേ, നമസ്കാരം!
+
+{campaign_body}
+
+ഓർക്കുക — Lumina Board ഉള്ളപ്പോൾ നിങ്ങളുടെ വിള, നിങ്ങളുടെ ഭാവി സുരക്ഷിതം.
+കൂടുതൽ വിവരങ്ങൾക്ക് അടുത്തുള്ള Lumina Board ഡീലറെ ബന്ധപ്പെടുക.
+
+Lumina Board India — കർഷകന്റെ ചങ്ങാതി."
+
+[സംഗീതം - ഫേഡ് ഔട്ട്]
 """
 }
 
@@ -364,12 +503,11 @@ class CampaignMessageGenerator:
             }
         }
 
-        # Try gemini-flash-latest first, then fallbacks
         for model in ["gemini-flash-latest", "gemini-2.0-flash", "gemini-pro-latest"]:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key.strip()}"
             for attempt in range(2):
                 try:
-                    resp = requests.post(url, headers=headers, json=payload, timeout=5)
+                    resp = requests.post(url, headers=headers, json=payload, timeout=15)
                     if resp.status_code == 200:
                         data = resp.json()
                         text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
@@ -453,8 +591,8 @@ class CampaignMessageGenerator:
                 f"dominant device: {segment_stats.get('dominant_device', '?')}"
             )
 
-        prompt = f"""You are a master agricultural marketing copywriter for Lumina Board.
-Generate a detailed, highly persuasive marketing advisory paragraph in {lang} language for Indian farmers.
+        prompt = f"""You are a master agricultural marketing copywriter for Lumina Board India.
+Generate a detailed, highly persuasive marketing advisory message in {lang} language for Indian farmers.
 
 CAMPAIGN PARAMETERS:
 - Campaign Type: {campaign_type}
@@ -465,38 +603,59 @@ CAMPAIGN PARAMETERS:
 {stats_str}
 {f"Additional Context: {context}" if context else ""}
 
-STRICT LANGUAGE & FORMAT REQUIREMENTS:
-1. Write EXCLUSIVELY in the native script of {lang} ({script_name} script). Do NOT use English transliteration.
-   - For Hindi: Use Devanagari script (हिंदी)
-   - For Telugu: Use Telugu script (తెలుగు)
-   - For Marathi: Use Devanagari script (मराठी)
-   - For Punjabi: Use Gurmukhi script (ਪੰਜਾਬੀ)
-   - For Tamil: Use Tamil script (தமிழ்)
-   - For Kannada: Use Kannada script (ಕನ್ನಡ)
-   - For Bengali: Use Bengali script (বাংলা)
-   - For Gujarati: Use Gujarati script (ગુજરાતી)
-   - For Odia: Use Odia script (ଓଡ଼ିଆ)
-   - For Malayalam: Use Malayalam script (മലയാളം)
-   - For English: Use English
-2. Form & Length: Write a RICH MARKETING PARAGRAPH (100 to 200 words). Do NOT write just 1-2 short lines.
-3. Content Structure:
-   - Greeting: Respectful greeting in {lang} native script ({meta.get('greeting', 'Dear Farmer')}).
-   - Threat / Season Context: Describe pest, disease, or weather risk facing {crop} growers in {state}.
-   - Product Solution: Introduce {product}, highlighting its fast systemic action, protective benefits, and yield enhancement.
-   - Application Guidance: Recommended dosage and spray timing for maximum crop protection.
-   - Trust & Call to Action: Urge farmers to visit their nearest authorized dealer or call toll-free support.
-   - Closing Signature: "Lumina Board — Your Trusted Farming Partner".
+CRITICAL LANGUAGE REQUIREMENTS:
+You MUST write the main message in {lang} using {script_name} script.
+Do NOT use English transliteration (romanized text) for the main content.
+You MAY use English letters ONLY for brand names (like Lumina Board, {product}) or if a specific technical term has no common translation.
 
-Output ONLY the complete marketing advisory paragraph in native {lang} script. No title, no translation, no English intro."""
+SCRIPT REFERENCE (write your output ONLY in one of these):
+- Hindi → Devanagari: नमस्ते किसान भाई, आपकी फसल की सुरक्षा
+- Telugu → Telugu: నమస్కారం రైతు అన్నా, మీ పంట సంరక్షణ
+- Marathi → Devanagari: नमस्कार शेतकरी बंधू, तुमच्या पिकाची सुरक्षा
+- Punjabi → Gurmukhi: ਸਤ ਸ੍ਰੀ ਅਕਾਲ ਕਿਸਾਨ ਜੀ, ਤੁਹਾਡੀ ਫਸਲ ਦੀ ਸੁਰੱਖਿਆ
+- Tamil → Tamil: வணக்கம் விவசாயி, உங்கள் பயிர் பாதுகாப்பு
+- Kannada → Kannada: ನಮಸ್ಕಾರ ರೈತ ಬಂಧು, ನಿಮ್ಮ ಬೆಳೆಯ ರಕ್ಷಣೆ
+- Bengali → Bengali: নমস্কার কৃষক ভাই, আপনার ফসল সুরক্ষা
+- Gujarati → Gujarati: નમસ્તે ખેડૂત ભાઈ, તમારા પાકની સુરક્ષા
+- Odia → Odia: ନମସ୍କାର ଚାଷୀ ଭାଇ, ଆପଣଙ୍କ ଫସଲ ସୁରକ୍ଷା
+- Malayalam → Malayalam: നമസ്കാരം കർഷക സഹോദരാ, നിങ്ങളുടെ വിള സംരക്ഷണം
+- English → Latin: Dear Farmer, your crop protection
+
+CONTENT STRUCTURE (write in {lang} native script only):
+1. Greeting: {meta.get('greeting', 'Dear Farmer')}
+2. Threat Context: Describe pest/disease/weather risk facing {crop} growers in {state}
+3. Product Solution: Introduce {product}, highlight systemic action and yield enhancement
+4. Application Guidance: Recommended dosage and spray timing
+5. Call to Action: Visit nearest authorized dealer
+6. Closing: "Lumina Board — Your Trusted Farming Partner" (translated to {lang})
+
+LENGTH: Rich paragraph, 100-200 words in {lang} script.
+OUTPUT: ONLY the message text in {lang} {script_name} script. No English text, no title, no translation notes."""
 
         gemini_result = self._call_gemini_api(prompt, max_tokens=600)
         if gemini_result:
-            return gemini_result
+            # Validate: check if the output actually contains native script characters
+            # If the result is mostly English/Latin for a non-English language, fall back to template
+            if lang != "English":
+                validated = self._validate_native_script(gemini_result, lang)
+                if validated:
+                    return gemini_result
+                else:
+                    logger.warning(f"Gemini output for {lang} failed native script validation, using template fallback")
+            else:
+                return gemini_result
 
-        # Try Ollama LLM next
-        llm_result = self._llm_generate_sms_prompt(prompt)
-        if llm_result:
-            return llm_result
+        # Skip Ollama LLM for languages where Qwen2.5 hallucination rate is too high
+        skip_ollama_langs = ["Tamil", "Kannada", "Bengali", "Gujarati", "Odia"]
+        if lang not in skip_ollama_langs:
+            # Try Ollama LLM next
+            llm_result = self._llm_generate_sms_prompt(prompt)
+            if llm_result:
+                if lang != "English":
+                    if self._validate_native_script(llm_result, lang):
+                        return llm_result
+                else:
+                    return llm_result
 
         # Template fallback
         return self._template_sms(campaign_type, product, crop, state, lang)
@@ -522,6 +681,35 @@ Output ONLY the complete marketing advisory paragraph in native {lang} script. N
         except Exception:
             return None
 
+    def _translate_term(self, term: str, lang: str, term_type: str = "crop") -> str:
+        if not term or lang == "English":
+            return term
+        term_lower = term.lower().strip()
+        
+        # Extremely simple translation dict for common terms used in these campaigns
+        crop_dict = {
+            "wheat": {"Hindi": "गेहूँ", "Marathi": "गहू", "Punjabi": "ਕਣਕ", "Telugu": "గోధుమ", "Tamil": "கோதுமை", "Kannada": "ಗೋಧಿ", "Bengali": "গম", "Gujarati": "ઘઉં", "Odia": "ଗହମ", "Malayalam": "ഗോതമ്പ്"},
+            "rice": {"Hindi": "धान", "Marathi": "भात", "Punjabi": "ਝੋਨਾ", "Telugu": "వరి", "Tamil": "நெல்", "Kannada": "ಭತ್ತ", "Bengali": "ধান", "Gujarati": "ડાંગર", "Odia": "ଧାନ", "Malayalam": "നെല്ല്"},
+            "cotton": {"Hindi": "कपास", "Marathi": "कापूस", "Punjabi": "ਕਪਾਹ", "Telugu": "పత్తి", "Tamil": "பருத்தி", "Kannada": "ಹತ್ತಿ", "Bengali": "তুলা", "Gujarati": "કપાસ", "Odia": "କପା", "Malayalam": "പരുത്തി"},
+            "soybean": {"Hindi": "सोयाबीन", "Marathi": "सोयाबीन", "Punjabi": "ਸੋਇਆਬੀਨ", "Telugu": "సోయాబీన్", "Tamil": "சோயாபீன்", "Kannada": "ಸೋಯಾಬೀನ್", "Bengali": "সয়াবিন", "Gujarati": "સોયાબીન", "Odia": "ସୋୟାବିନ୍", "Malayalam": "സോയാബീൻ"},
+            "sugarcane": {"Hindi": "गन्ना", "Marathi": "ऊस", "Punjabi": "ਗੰਨਾ", "Telugu": "చెరకు", "Tamil": "கரும்பு", "Kannada": "ಕಬ್ಬು", "Bengali": "আখ", "Gujarati": "શેરડી", "Odia": "ଆଖୁ", "Malayalam": "കരിമ്പ്"}
+        }
+        
+        state_dict = {
+            "punjab": {"Hindi": "पंजाब", "Marathi": "पंजाब", "Punjabi": "ਪੰਜਾਬ", "Telugu": "పంజాబ్", "Tamil": "பஞ்சாப்", "Kannada": "ಪಂಜಾಬ್", "Bengali": "পাঞ্জাব", "Gujarati": "પંજાબ", "Odia": "ପଞ୍ଜାବ", "Malayalam": "പഞ്ചാബ്"},
+            "maharashtra": {"Hindi": "महाराष्ट्र", "Marathi": "महाराष्ट्र", "Punjabi": "ਮਹਾਰਾਸ਼ਟਰ", "Telugu": "మహారాష్ట్ర", "Tamil": "மகாராஷ்டிரா", "Kannada": "ಮಹಾರಾಷ್ಟ್ರ", "Bengali": "মহারাষ্ট্র", "Gujarati": "મહારાષ્ટ્ર", "Odia": "ମହାରାଷ୍ଟ୍ର", "Malayalam": "മഹാരാഷ്ട്ര"},
+            "andhra pradesh": {"Hindi": "आंध्र प्रदेश", "Marathi": "आंध्र प्रदेश", "Punjabi": "ਆਂਧਰਾ ਪ੍ਰਦੇਸ਼", "Telugu": "ఆంధ్రప్రదేశ్", "Tamil": "ஆந்திரப் பிரதேசம்", "Kannada": "ಆಂಧ್ರಪ್ರದೇಶ", "Bengali": "অন্ধ্রপ্রদেশ", "Gujarati": "આંધ્ર પ્રદેશ", "Odia": "ଆନ୍ଧ୍ରପ୍ରଦେଶ", "Malayalam": "ആന്ധ്രാപ്രദേശ്"},
+            "telangana": {"Hindi": "तेलंगाना", "Marathi": "तेलंगणा", "Punjabi": "ਤੇਲੰਗਾਨਾ", "Telugu": "తెలంగాణ", "Tamil": "தெலுங்கானா", "Kannada": "ತೆಲಂಗಾಣ", "Bengali": "তেলেঙ্গানা", "Gujarati": "તેલંગાણા", "Odia": "ତେଲେଙ୍ଗାନା", "Malayalam": "തെലങ്കാന"},
+            "karnataka": {"Hindi": "कर्नाटक", "Marathi": "कर्नाटक", "Punjabi": "ਕਰਨਾਟਕ", "Telugu": "కర్ణాటక", "Tamil": "கர்நாடகா", "Kannada": "ಕರ್ನಾಟಕ", "Bengali": "কর্ণাটক", "Gujarati": "કર્ણાટક", "Odia": "କର୍ଣ୍ଣାଟକ", "Malayalam": "കർണാടക"},
+            "tamil nadu": {"Hindi": "तमिलनाडु", "Marathi": "तामिळनाडू", "Punjabi": "ਤਾਮਿਲਨਾਡੂ", "Telugu": "తమిళనాడు", "Tamil": "தமிழ்நாடு", "Kannada": "ತಮಿಳುನಾಡು", "Bengali": "তামিলনাড়ু", "Gujarati": "તમિલનાડુ", "Odia": "ତାମିଲନାଡୁ", "Malayalam": "തമിഴ്നാട്"},
+            "gujarat": {"Hindi": "गुजरात", "Marathi": "गुजरात", "Punjabi": "ਗੁਜਰਾਤ", "Telugu": "గుజరాత్", "Tamil": "குஜராத்", "Kannada": "ಗುಜರಾತ್", "Bengali": "গুজরাট", "Gujarati": "ગુજરાત", "Odia": "ଗୁଜରାଟ", "Malayalam": "ഗുജറാത്ത്"}
+        }
+        
+        dictionary = crop_dict if term_type == "crop" else state_dict
+        if term_lower in dictionary and lang in dictionary[term_lower]:
+            return dictionary[term_lower][lang]
+        return term
+
     def _template_sms(self, campaign_type: str, product: str, crop: str, state: str, lang: str) -> str:
         """Use pre-built template."""
         templates = TEMPLATES.get(campaign_type, TEMPLATES.get("product_launch", {}))
@@ -529,11 +717,16 @@ Output ONLY the complete marketing advisory paragraph in native {lang} script. N
         template = templates.get(lang) or templates.get("English", "{greeting}, Lumina Board {product} for {crop} in {state}.")
 
         meta = LANGUAGE_META.get(lang, {})
+        
+        # Translate crop and state
+        t_crop = self._translate_term(crop, lang, "crop") if crop else ("" if lang != "English" else "crop")
+        t_state = self._translate_term(state, lang, "state") if state else ("" if lang != "English" else "region")
+        
         return template.format(
             greeting=meta.get("greeting", "Dear Farmer"),
-            product=product or "our product",
-            crop=crop or "your crop",
-            state=state or "your region"
+            product=product or "Amistar Top",
+            crop=t_crop,
+            state=t_state
         )
 
     def _generate_audio_script(
@@ -599,6 +792,54 @@ Output only the script text."""
         """Expand SMS to 3-4 sentence audio body."""
         # Simple expansion: repeat key points with pauses
         return sms.replace("।", "।\n").replace(".", ".\n")
+
+    def _validate_native_script(self, text: str, lang: str) -> bool:
+        """
+        Validate that the generated text actually contains native script characters.
+        Returns True if at least 30% of non-space, non-punctuation characters are
+        in the expected Unicode range for the language.
+        """
+        import re
+        # Unicode ranges for each Indian language script
+        script_ranges = {
+            "Hindi": r'[\u0900-\u097F]',      # Devanagari
+            "Marathi": r'[\u0900-\u097F]',     # Devanagari
+            "Telugu": r'[\u0C00-\u0C7F]',      # Telugu
+            "Punjabi": r'[\u0A00-\u0A7F]',     # Gurmukhi
+            "Tamil": r'[\u0B80-\u0BFF]',       # Tamil
+            "Kannada": r'[\u0C80-\u0CFF]',     # Kannada
+            "Bengali": r'[\u0980-\u09FF]',     # Bengali
+            "Gujarati": r'[\u0A80-\u0AFF]',    # Gujarati
+            "Odia": r'[\u0B00-\u0B7F]',        # Odia
+            "Malayalam": r'[\u0D00-\u0D7F]',   # Malayalam
+        }
+        
+        pattern = script_ranges.get(lang)
+        if not pattern:
+            return True  # Unknown language, skip validation
+        
+        # Count native script characters vs total non-whitespace characters
+        clean_text = re.sub(r'[\s\d.,!?;:\-—–\'"()\[\]{}@#$%^&*+=/<>\\|~`\n\r\t]', '', text)
+        # Also remove common brand names that will be in Latin
+        clean_text = re.sub(r'[A-Za-z]+', '', clean_text)
+        
+        if len(clean_text) < 80:
+            logger.warning(f"Native script validation for {lang} failed: output too short ({len(clean_text)} chars)")
+            return False
+        
+        native_chars = len(re.findall(pattern, text))
+        # At least 20% of all characters should be in native script
+        total_chars = len(re.sub(r'\s', '', text))
+        if total_chars == 0:
+            return False
+        
+        ratio = native_chars / total_chars
+        is_valid = ratio >= 0.50
+        
+        if not is_valid:
+            logger.warning(f"Native script validation for {lang}: ratio={ratio:.2f} ({native_chars}/{total_chars} native chars) - FAILED")
+        
+        return is_valid
 
     def _estimate_duration(self, script: str, lang: str) -> int:
         """Estimate audio duration in seconds based on word count."""

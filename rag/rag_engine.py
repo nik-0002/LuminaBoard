@@ -14,8 +14,7 @@ from datetime import datetime
 
 import pandas as pd
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from rank_bm25 import BM25Okapi
 
 logger = logging.getLogger("lumina.rag")
 
@@ -52,34 +51,37 @@ STAT_FUNCTIONS = {
 class CSVRagEngine:
     """
     Enhanced CSV RAG Engine with:
-    - Multi-strategy retrieval (semantic + structured + aggregate)
+    - BM25 Search Algorithm
+    - Contextual Row Serialization
+    - Dynamic Entity Extraction (Auto-gazetteer)
     - Query routing to relevant datasets
     - Aggregate statistics injection for numeric queries
-    - Cross-dataset join hints
-    - Document deduplication and diversity
     """
 
     def __init__(self, data_dir: str):
         self.data_dir = data_dir
-        self.vectorizer = TfidfVectorizer(
-            analyzer="word",
-            ngram_range=(1, 3),
-            max_features=80_000,
-            sublinear_tf=True,
-            min_df=1,
-            stop_words="english",
-        )
         self.documents: List[Dict] = []
-        self.tfidf_matrix = None
+        self.bm25: Optional[BM25Okapi] = None
         self.is_built = False
         self._csv_metadata: Dict[str, Dict] = {}
         self._dataframes: Dict[str, pd.DataFrame] = {}
         self._aggregate_cache: Dict[str, Any] = {}
+        
+        # Dynamic entities extracted during indexing
+        self._dynamic_states = set()
+        self._dynamic_crops = set()
+        self._dynamic_products = set()
+
+    def _tokenize(self, text: str) -> List[str]:
+        """Simple tokenizer that lowercases and removes basic stopwords for BM25."""
+        stop_words = {"a", "an", "the", "and", "or", "but", "if", "is", "are", "was", "were", "be", "been", "in", "on", "at", "to", "for", "with", "about", "who", "what", "where", "when", "why", "how", "of", "this", "that", "it", "they", "them"}
+        tokens = text.lower().replace(".", "").replace(",", "").replace("?", "").split()
+        return [t for t in tokens if t not in stop_words and len(t) > 1]
 
     # ─── Index Building ────────────────────────────────────────────────────────
 
     def build_index(self):
-        """Load all CSVs and build TF-IDF index + aggregate stats cache."""
+        """Load all CSVs and build BM25 index + aggregate stats cache."""
         logger.info(f"[RAG] Building enhanced index from {self.data_dir}")
         self.documents = []
         self._dataframes = {}
@@ -102,12 +104,13 @@ class CSVRagEngine:
         # Build aggregate stats cache for all datasets
         self._build_aggregate_cache()
 
-        # Build TF-IDF
+        # Build BM25 index
         texts = [d["text"] for d in self.documents]
-        logger.info(f"[RAG] Fitting TF-IDF on {len(texts)} docs from {len(csv_paths)} CSVs")
-        self.tfidf_matrix = self.vectorizer.fit_transform(texts)
+        logger.info(f"[RAG] Tokenizing and fitting BM25 on {len(texts)} docs from {len(csv_paths)} CSVs")
+        tokenized_corpus = [self._tokenize(text) for text in texts]
+        self.bm25 = BM25Okapi(tokenized_corpus)
         self.is_built = True
-        logger.info(f"[RAG] Index ready: {len(self.documents)} docs, shape {self.tfidf_matrix.shape}")
+        logger.info(f"[RAG] Index ready: {len(self.documents)} docs built with BM25")
 
     def _discover_csvs(self) -> List[str]:
         paths = set()
@@ -161,13 +164,57 @@ class CSVRagEngine:
                 # Always include first 100 rows
                 rows_to_index = pd.concat([df_filled.head(100), rows_to_index]).drop_duplicates()
 
+            # Dynamic extraction logic and contextual serialization
+            has_state = "state" in df.columns
+            has_crop = "crop" in df.columns or "campaign_crop" in df.columns
+            has_product = "product" in df.columns or "campaign_product" in df.columns
+
             for idx, row in rows_to_index.iterrows():
-                parts = [f"Dataset:{source}"]
+                parts = []
+                
+                # Dynamic Entity Extraction
+                if has_state and str(row.get("state", "")) not in ("unknown", "nan", ""):
+                    self._dynamic_states.add(str(row["state"]).lower().strip())
+                if "crop" in row and str(row.get("crop", "")) not in ("unknown", "nan", ""):
+                    self._dynamic_crops.add(str(row["crop"]).lower().strip())
+                if "campaign_crop" in row and str(row.get("campaign_crop", "")) not in ("unknown", "nan", ""):
+                    self._dynamic_crops.add(str(row["campaign_crop"]).lower().strip())
+                if "product" in row and str(row.get("product", "")) not in ("unknown", "nan", ""):
+                    self._dynamic_products.add(str(row["product"]).lower().strip())
+                if "campaign_product" in row and str(row.get("campaign_product", "")) not in ("unknown", "nan", ""):
+                    self._dynamic_products.add(str(row["campaign_product"]).lower().strip())
+
+                # Contextual Serialization
+                context_prefix = f"This record is from the {source} dataset. "
+                
+                if source == "growers":
+                    parts.append(f"{context_prefix}Grower {row.get('grower_id', '')} is in {row.get('district', '')} district, {row.get('state', '')}.")
+                    crop_info = str(row.get('grower_crop_calendar', ''))
+                    actual_crop = 'various crops'
+                    if crop_info and crop_info not in ('unknown', 'nan', 'NaT'):
+                        try:
+                            crop_data = json.loads(crop_info)
+                            actual_crop = crop_data.get('crop', 'various crops')
+                        except:
+                            actual_crop = 'various crops'
+                    parts.append(f"They cultivate {actual_crop}.")
+                    parts.append(f"They use a {row.get('device_type', '')} device.")
+                elif source == "whatsapp_campaign":
+                    parts.append(f"{context_prefix}Campaign {row.get('campaign_id', '')} targeted grower {row.get('grower_id', '')}.")
+                    parts.append(f"The campaign is about {row.get('campaign_product', '')} for {row.get('campaign_crop', '')}.")
+                elif source == "retailer_pos":
+                    parts.append(f"{context_prefix}Retailer {row.get('retailer_id', '')} sold {row.get('sku_qty', 0)} units of {row.get('sku_name', '')}.")
+                else:
+                    parts.append(context_prefix)
+                    
+                # Append remaining details
+                exclude_cols = ["grower_id", "state", "district", "crop", "device_type", "campaign_id", "campaign_product", "campaign_crop", "sku_name", "retailer_id", "grower_crop_calendar"]
                 for col, val in row.items():
                     sv = str(val)
-                    if sv not in ("unknown", "nan", "NaT", ""):
-                        parts.append(f"{col.replace('_', ' ')}:{sv}")
-                text = " | ".join(parts)
+                    if sv not in ("unknown", "nan", "NaT", "") and col not in exclude_cols:
+                        parts.append(f"{col.replace('_', ' ')} is {sv}.")
+                
+                text = " ".join(parts)
                 self.documents.append({
                     "text": text,
                     "source": source,
@@ -229,14 +276,14 @@ class CSVRagEngine:
         if not self.is_built:
             self.build_index()
 
-        if not self.documents or self.tfidf_matrix is None:
+        if not self.documents or self.bm25 is None:
             return []
 
         results = []
 
-        # ── Strategy 1: TF-IDF Semantic ─────────────────────────────────────
-        query_vec = self.vectorizer.transform([query_text])
-        scores = cosine_similarity(query_vec, self.tfidf_matrix).flatten()
+        # ── Strategy 1: BM25 Lexical/Semantic Search ─────────────────────────────────────
+        tokenized_query = self._tokenize(query_text)
+        scores = self.bm25.get_scores(tokenized_query)
 
         if csv_filter:
             filter_name = csv_filter.replace(".csv", "")
@@ -248,6 +295,8 @@ class CSVRagEngine:
         seen = {}
         for idx in top_indices:
             score = float(scores[idx])
+            # BM25 scores are unnormalized and can be > 1.0, so the threshold might need tuning.
+            # But we can keep min_score for now to discard absolute zero matches.
             if score < min_score:
                 continue
             doc = self.documents[idx]
@@ -278,22 +327,14 @@ class CSVRagEngine:
         return final[:top_k]
 
     def _structured_query(self, query_text: str, csv_filter: Optional[str]) -> List[Dict]:
-        """Extract named entities (state, crop, product) and do exact-match lookup."""
+        """Extract named entities dynamically (state, crop, product) and do exact-match lookup."""
         results = []
         q_lower = query_text.lower()
 
-        # Indian states
-        STATES = [
-            "andhra pradesh", "telangana", "maharashtra", "karnataka",
-            "tamil Nadu", "punjab", "haryana", "uttar pradesh", "madhya pradesh",
-            "rajasthan", "gujarat", "west bengal", "odisha", "bihar",
-            "jharkhand", "chhattisgarh", "assam", "kerala",
-        ]
-        mentioned_states = [s for s in STATES if s.lower() in q_lower]
-
-        CROPS = ["rice", "wheat", "cotton", "soybean", "maize", "sugarcane",
-                 "tomato", "onion", "chilli", "groundnut", "sunflower", "mustard"]
-        mentioned_crops = [c for c in CROPS if c in q_lower]
+        # Dynamic entity matching
+        mentioned_states = [s for s in self._dynamic_states if s in q_lower]
+        mentioned_crops = [c for c in self._dynamic_crops if c in q_lower]
+        mentioned_products = [p for p in self._dynamic_products if p in q_lower]
 
         for source, df in self._dataframes.items():
             if csv_filter and source != csv_filter.replace(".csv", ""):
@@ -328,6 +369,27 @@ class CSVRagEngine:
                             for _, row in sample.iterrows():
                                 results.append({
                                     "text": f"[CROP_FILTER:{crop}] " + " | ".join(
+                                        f"{k}:{v}" for k, v in row.items()
+                                        if str(v) not in ("nan", "unknown", "")
+                                    ),
+                                    "source": source,
+                                    "row_idx": int(row.name),
+                                    "doc_type": "structured_filter",
+                                    "data": row.to_dict(),
+                                    "score": 0.55,
+                                })
+                            break
+
+            # Product filter
+            for prod_col in ["campaign_product", "product", "sku_name"]:
+                if prod_col in df.columns and mentioned_products:
+                    for product in mentioned_products[:2]:
+                        prod_df = df[df[prod_col].astype(str).str.lower().str.contains(product, na=False)]
+                        if len(prod_df) > 0:
+                            sample = prod_df.head(3)
+                            for _, row in sample.iterrows():
+                                results.append({
+                                    "text": f"[PRODUCT_FILTER:{product}] " + " | ".join(
                                         f"{k}:{v}" for k, v in row.items()
                                         if str(v) not in ("nan", "unknown", "")
                                     ),

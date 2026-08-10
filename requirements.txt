@@ -6,3 +6,4 @@ scikit-learn==1.5.1
 pyyaml==6.0.2
 requests==2.32.3
 gTTS==2.5.3
+rank-bm25==0.2.2

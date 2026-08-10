@@ -731,10 +731,17 @@ def chat():
                     
                     context_parts.append(summary)
         
+        # Build conversational context for RAG search
+        search_query = query
+        if len(history) > 0:
+            last_msg = history[-1].get('content', '')
+            if len(last_msg) > 0 and len(last_msg) < 150:
+                search_query = f"{last_msg} {query}"
+
         # Also use RAG engine for semantic search
         try:
             rag = get_rag_engine()
-            retrieved = rag.query(query, top_k=15, csv_filter=csv_filter)
+            retrieved = rag.query(search_query, top_k=15, csv_filter=csv_filter)
             
             for item in retrieved:
                 context_parts.append(

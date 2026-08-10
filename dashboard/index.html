@@ -438,6 +438,78 @@ input,textarea,select{font-family:inherit;color:var(--text); outline:none;}
   border-radius: 50%;
   box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
+/* ══ RESPONSIVE DESIGN ═══════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  #left-panel {
+    width: 320px;
+    min-width: 250px;
+  }
+}
+@media (max-width: 850px) {
+  #topbar {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 12px 20px;
+    gap: 8px;
+  }
+  .top-tabs {
+    flex-wrap: wrap;
+    width: 100%;
+    margin-left: 0;
+    margin-bottom: 8px;
+  }
+  .top-right {
+    width: 100%;
+    justify-content: space-between;
+    margin-left: 0;
+  }
+  
+  #app {
+    flex-direction: column;
+  }
+  #left-panel {
+    width: 100%;
+    max-width: 100%;
+    height: 40vh;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  #right-panel {
+    height: 60vh;
+  }
+  #resize-handle {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  .metric-row {
+    grid-template-columns: 1fr;
+  }
+  .msg-bubble {
+    max-width: 100%;
+  }
+  .action-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .action-row > * {
+    width: 100% !important;
+  }
+  #chat-mode-bar {
+    overflow-x: auto;
+    white-space: nowrap;
+    flex-wrap: nowrap;
+    padding-bottom: 12px;
+  }
+  #quick-cmds {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 16px;
+  }
+}
 </style>
 </head>
 <body>
@@ -643,6 +715,7 @@ input,textarea,select{font-family:inherit;color:var(--text); outline:none;}
           <label class="lang-check"><input type="checkbox" value="Bengali"/><span>বাংলা</span></label>
           <label class="lang-check"><input type="checkbox" value="Gujarati"/><span>ગુજરાતી</span></label>
           <label class="lang-check"><input type="checkbox" value="Odia"/><span>ଓଡ଼ିଆ</span></label>
+          <label class="lang-check"><input type="checkbox" value="Malayalam"/><span>മലയാളം</span></label>
           <label class="lang-check"><input type="checkbox" value="English" checked/><span>English</span></label>
         </div>
       </div>
@@ -1976,7 +2049,11 @@ async function generateCampaign2() {
 
   try {
     const userPhoneVal = (document.getElementById('camp2-custom-phones')?.value || '').trim();
-    const activeTargetPhone = userPhoneVal ? userPhoneVal.split(',')[0].replace(/\D/g,'') : (window.targetTestPhone || '8978518496');
+    // Parse ALL phone numbers from the input, not just the first one
+    const allPhoneNumbers = userPhoneVal
+      ? userPhoneVal.split(',').map(n => n.trim().replace(/\D/g,'')).filter(n => n.length >= 10)
+      : [(window.targetTestPhone || '8978518496')];
+    const activeTargetPhone = allPhoneNumbers[0];
     if (activeTargetPhone) window.targetTestPhone = activeTargetPhone;
 
     const geminiKeyLocal = localStorage.getItem('gemini_api_key') || '';
@@ -2012,7 +2089,6 @@ async function generateCampaign2() {
     // Render results right on campaign page (#camp2-results)
     const msgs = data.messages || {};
     const languagesGenerated = data.messages_generated || Object.keys(msgs) || languages;
-    const defaultPhone = activeTargetPhone;
     const prodName = product || 'Amistar Top';
     const prodSlug = prodName.toLowerCase().replace(/\s+/g, '_');
     const bannerUrl = `https://lumina-board.s3.amazonaws.com/products/${prodSlug}_banner.jpg`;
@@ -2021,8 +2097,27 @@ async function generateCampaign2() {
       const msgObj = msgs[lang] || {};
       const smsTxt = msgObj.sms || `Lumina Board Alert: ${prodName} for ${crop||'crops'} in ${state||'region'}. Safeguard your yield today!`;
       const charCount = msgObj.char_count || smsTxt.length;
-      const waText = `${smsTxt}\n\n🖼️ Visual Banner: ${bannerUrl}`;
-      const waLink = `https://wa.me/91${defaultPhone}?text=${encodeURIComponent(waText)}`;
+
+      // Build send buttons for EVERY phone number, not just the first
+      const phoneButtonsHtml = allPhoneNumbers.map((phone, phoneIdx) => {
+        const waText = `${smsTxt}\n\n🖼️ Visual Banner: ${bannerUrl}`;
+        const waLink = `https://wa.me/91${phone}?text=${encodeURIComponent(waText)}`;
+        const phoneLabel = allPhoneNumbers.length > 1 ? `#${phoneIdx + 1}: ${phone}` : phone;
+        return `
+          <div style="display:flex;gap:8px;flex-wrap:wrap;${phoneIdx > 0 ? 'margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)' : ''}">
+            ${allPhoneNumbers.length > 1 ? `<span style="font-size:11px;font-weight:700;color:var(--accent2);display:flex;align-items:center;gap:4px;min-width:100%">📞 Recipient ${phoneLabel}</span>` : ''}
+            <a class="act-btn primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px" href="${waLink}" target="_blank">
+              💬 WhatsApp (${phone})
+            </a>
+            <a class="act-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;background:var(--accent2);color:white;border:none" href="sms:+91${phone}?body=${encodeURIComponent(smsTxt)}">
+              📱 SMS (${phone})
+            </a>
+            <button class="act-btn purple" onclick="sendDirectFreeSms('${escJ(smsTxt)}','${phone}')">
+              ⚡ Fast2SMS (${phone})
+            </button>
+          </div>
+        `;
+      }).join('');
 
       return `
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:16px;box-shadow:var(--shadow)">
@@ -2055,37 +2150,42 @@ async function generateCampaign2() {
           </div>
           <div style="width:100%;height:38px;margin-bottom:12px;border-radius:8px;background:var(--bg2,#f0f0f0);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-dim,#888);border:1px solid var(--border,#ddd)">🔊 Click ▶ Play above to hear this message via browser speech</div>
 
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <a class="act-btn primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px" href="${waLink}" target="_blank">
-              💬 Send WhatsApp (${defaultPhone})
-            </a>
-            <a class="act-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;background:var(--accent2);color:white;border:none" href="sms:+91${defaultPhone}?body=${encodeURIComponent(smsTxt)}">
-              📱 1-Click Device SMS (${defaultPhone})
-            </a>
-            <button class="act-btn purple" onclick="sendDirectFreeSms('${escJ(smsTxt)}','${defaultPhone}')">
-              ⚡ Fast2SMS API Send
-            </button>
+          <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px">📤 SEND TO ${allPhoneNumbers.length > 1 ? 'ALL ' + allPhoneNumbers.length + ' RECIPIENTS' : 'RECIPIENT'}</div>
+          ${phoneButtonsHtml}
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
             <button class="act-btn" onclick="copyToClipboard('${escJ(smsTxt)}')">
               📋 Copy Text
             </button>
+            <a class="act-btn primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;background:var(--accent2);color:white;border:none" href="sms:${allPhoneNumbers.map(p => '+91'+p).join(',')}?body=${encodeURIComponent(smsTxt)}">
+              📱 Send to ALL ${allPhoneNumbers.length} via Device SMS
+            </a>
+            <button class="act-btn purple" onclick="sendToAllPhonesFast2SMS('${escJ(smsTxt)}')">
+              ⚡ Send to ALL ${allPhoneNumbers.length} via Fast2SMS
+            </button>
+            ${allPhoneNumbers.length > 1 ? `<div style="font-size:10px;color:var(--text-dim);width:100%;margin-top:4px">💡 Note: WhatsApp does not support bulk sending via web links. You must click the individual WhatsApp buttons above, or use the <b>Dispatch</b> button to send via API.</div>` : ''}
           </div>
         </div>
       `;
     }).join('');
 
+    // Store allPhoneNumbers globally for the bulk dispatch and sendToAll functions
+    window._campaignAllPhones = allPhoneNumbers;
+    window._campaignLanguages = languages;
+
     if (resultsDiv) {
       resultsDiv.innerHTML = `
-        <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
-          <span>✨ Generated ${languages.length} Multilingual Campaign Variants</span>
+        <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">
+          <span>✨ Generated ${languagesGenerated.length} Multilingual Campaign Variants</span>
           <button class="act-btn primary" onclick="dispatchBulkCampaign('${escJ(prodName)}', '${escJ(crop||'wheat')}', '${escJ(state||'Punjab')}')">
-            🚀 DISPATCH TO ALL RECIPIENTS
+            🚀 DISPATCH TO ALL ${allPhoneNumbers.length} RECIPIENTS
           </button>
         </div>
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:16px">📞 Target Numbers: <strong>${allPhoneNumbers.join(', ')}</strong></div>
         ${cardsHtml}
       `;
     }
 
-    toast('✅ Multilingual Messages Generated Successfully!');
+    toast(`✅ Messages Generated for ${allPhoneNumbers.length} recipient(s) in ${languagesGenerated.length} language(s)!`);
 
   } catch(e) {
     toast('❌ Generation Error: ' + e.message);
@@ -2101,32 +2201,65 @@ function generateClientCampaignFallback(product, crop, state, type, languages, c
     "Telugu": { script: "Telugu", greeting: "నమస్కారం రైతు అన్నా", code: "te" },
     "Marathi": { script: "Devanagari", greeting: "नमस्कार शेतकरी बंधू", code: "mr" },
     "Punjabi": { script: "Gurmukhi", greeting: "ਸਤ ਸ੍ਰੀ ਅਕਾਲ ਕਿਸਾਨ ਜੀ", code: "pa" },
-    "Tamil": { script: "Tamil", greeting: "வணக்கம் விவசாயி தாத்தா", code: "ta" },
+    "Tamil": { script: "Tamil", greeting: "வணக்கம் விவசாயி நண்பரே", code: "ta" },
     "Kannada": { script: "Kannada", greeting: "ನಮಸ್ಕಾರ ರೈತ ಬಂಧು", code: "kn" },
     "Bengali": { script: "Bengali", greeting: "নমস্কার কৃষক ভাই", code: "bn" },
     "Gujarati": { script: "Gujarati", greeting: "નમસ્તે ખેડૂત ભાઈ", code: "gu" },
+    "Odia": { script: "Odia", greeting: "ନମସ୍କାର ଚାଷୀ ଭାଇ", code: "or" },
+    "Malayalam": { script: "Malayalam", greeting: "നമസ്കാരം കർഷക സഹോദരാ", code: "ml" },
     "English": { script: "Latin", greeting: "Dear Farmer", code: "en" }
   };
 
-  const templates = {
-    "Hindi": `${meta.Hindi.greeting},\n${state||'भारत'} के ${crop||'फसल'} किसानों के लिए Lumina Board लाया है एक क्रांतिकारी फसल सुरक्षा समाधान — ${product||'Amistar Top'}। ${crop||'फसल'} में फफूंद जनित रोगों और कीटों से बचाव के लिए अनुशंसित मात्रा में सही समय पर छिड़काव करें और अपनी फसल की पैदावार बढ़ाएं। अधिक जानकारी के लिए अपने नजदीकी अधिकृत डीलर से संपर्क करें।\nLumina Board — आपका भरोसेमंद खेती साथी।`,
-    "Telugu": `${meta.Telugu.greeting},\n${state||'ప్రాంతపు'} ${crop||'పంట'} రైతులకు Lumina Board అందించే విప్లవాత్మక పంట సంరక్షణ పరిష్కారం — ${product||'Amistar Top'}. తెగుళ్లు మరియు సిలీంధ్ర వ్యాధుల నివారణకు సిఫార్సు చేసిన మోతాదులో పిచికారీ చేయండి. దిగుబడి మరియు నాణ్యతను పెంచుకోండి.\nLumina Board — మీ నమ్మకమైన వ్యవసాయ భాగస్వామి.`,
-    "Marathi": `${meta.Marathi.greeting},\n${state||'महाराष्ट्रातील'} ${crop||'पिक'} उत्पादक शेतकऱ्यांसाठी Lumina Board घेऊन आले आहे अत्यंत प्रभावी औषध — ${product||'Amistar Top'}. पिकावरील बुरशीजन्य रोग आणि कीटकांच्या प्रादुर्भावावर त्वरित फवारणी करा.\nLumina Board — शेतकऱ्यांचा विश्वासू सोबती.`,
-    "Punjabi": `${meta.Punjabi.greeting},\n${state||'ਪੰਜਾਬ'} ਦੇ ${crop||'ਫਸਲ'} ਕਿਸਾਨਾਂ ਲਈ Lumina Board ਲਿਆਇਆ ਹੈ ਨਵਾਂ ਉਤਪਾਦ — ${product||'Amistar Top'}। ਫਸਲ ਨੂੰ ਬੀਮਾਰੀਆਂ ਤੋਂ ਬਚਾਉਣ ਲਈ ਸਿਫਾਰਸ਼ ਕੀਤੀ ਖੁਰਾਕ ਅਨੁਸਾਰ ਛਿੜਕਾਅ ਕਰੋ।\nLumina Board — ਕਿਸਾਨਾਂ ਦਾ ਭਰੋਸੇਯੋਗ ਸਾਥੀ।`,
-    "English": `${meta.English.greeting},\nLumina Board presents an advanced crop protection solution for ${crop||'crop'} growers in ${state||'your region'} — ${product||'Amistar Top'}. Protect your crop against severe fungal diseases and pest attacks with fast systemic action. Apply at recommended dosage.\nLumina Board — Your Trusted Farming Partner.`
+  const p = product || 'Amistar Top';
+  const raw_c = crop || 'wheat';
+  const raw_s = state || 'punjab';
+
+  const tC = {
+    "wheat": {"Hindi": "गेहूँ", "Marathi": "गहू", "Punjabi": "ਕਣਕ", "Telugu": "గోధుమ", "Tamil": "கோதுமை", "Kannada": "ಗೋಧಿ", "Bengali": "গম", "Gujarati": "ઘઉં", "Odia": "ଗହମ", "Malayalam": "ഗോതമ്പ്"},
+    "rice": {"Hindi": "धान", "Marathi": "भात", "Punjabi": "ਝੋਨਾ", "Telugu": "వరి", "Tamil": "நெல்", "Kannada": "ಭತ್ತ", "Bengali": "ধান", "Gujarati": "ડાંગર", "Odia": "ଧାନ", "Malayalam": "നെല്ല്"},
+    "cotton": {"Hindi": "कपास", "Marathi": "कापूस", "Punjabi": "ਕਪਾਹ", "Telugu": "పత్తి", "Tamil": "பருத்தி", "Kannada": "ಹತ್ತಿ", "Bengali": "তুলা", "Gujarati": "કપાસ", "Odia": "କପା", "Malayalam": "പരുത്തി"}
   };
+  const tS = {
+    "punjab": {"Hindi": "पंजाब", "Marathi": "पंजाब", "Punjabi": "ਪੰਜਾਬ", "Telugu": "పంజాబ్", "Tamil": "பஞ்சாப்", "Kannada": "ಪಂಜಾಬ್", "Bengali": "পাঞ্জাব", "Gujarati": "પંજાબ", "Odia": "ପଞ୍ଜାବ", "Malayalam": "പഞ്ചാബ്"},
+    "maharashtra": {"Hindi": "महाराष्ट्र", "Marathi": "महाराष्ट्र", "Punjabi": "ਮਹਾਰਾਸ਼ਟਰ", "Telugu": "మహారాష్ట్ర", "Tamil": "மகாராஷ்டிரா", "Kannada": "ಮಹಾರಾಷ್ಟ್ರ", "Bengali": "মহারাষ্ট্র", "Gujarati": "મહારાષ્ટ્ર", "Odia": "ମହାରାଷ୍ଟ୍ର", "Malayalam": "മഹാരാഷ്ട്ര"}
+  };
+
+  const getT = (dict, term, lang) => {
+    const termL = term.toLowerCase();
+    return (dict[termL] && dict[termL][lang]) ? dict[termL][lang] : term;
+  };
+
+  const templates = {};
+  languages.forEach(lang => {
+    const c = getT(tC, raw_c, lang);
+    const s = getT(tS, raw_s, lang);
+    const m = meta[lang] || meta["English"];
+    
+    if (lang === "Hindi") templates[lang] = `${m.greeting},\n${s} के ${c} किसानों के लिए Lumina Board लाया है एक क्रांतिकारी फसल सुरक्षा समाधान — ${p}। ${c} में फफूंद जनित रोगों और कीटों से बचाव के लिए अनुशंसित मात्रा में सही समय पर छिड़काव करें और अपनी फसल की पैदावार बढ़ाएं। अधिक जानकारी के लिए अपने नजदीकी अधिकृत डीलर से संपर्क करें।\nLumina Board — आपका भरोसेमंद खेती साथी।`;
+    else if (lang === "Telugu") templates[lang] = `${m.greeting},\n${s}లోని ${c} రైతులకు Lumina Board అందించే విప్లవాత్మక పంట సంరక్షణ పరిష్కారం — ${p}. తెగుళ్లు మరియు సిలీంధ్ర వ్యాధుల నివారణకు సిఫార్సు చేసిన మోతాదులో పిచికారీ చేయండి. దిగుబడి మరియు నాణ్యతను పెంచుకోండి. మీ సమీప డీలర్‌ను సంప్రదించండి.\nLumina Board — మీ నమ్మకమైన వ్యవసాయ భాగస్వామి.`;
+    else if (lang === "Marathi") templates[lang] = `${m.greeting},\n${s} मधील ${c} उत्पादक शेतकऱ्यांसाठी Lumina Board घेऊन आले आहे अत्यंत प्रभावी औषध — ${p}. पिकावरील बुरशीजन्य रोग आणि कीटकांच्या प्रादुर्भावावर त्वरित फवारणी करा. अधिक माहितीसाठी जवळच्या डीलरशी संपर्क साधा.\nLumina Board — शेतकऱ्यांचा विश्वासू सोबती.`;
+    else if (lang === "Punjabi") templates[lang] = `${m.greeting},\n${s} ਦੇ ${c} ਕਿਸਾਨਾਂ ਲਈ Lumina Board ਲਿਆਇਆ ਹੈ ਨਵਾਂ ਉਤਪਾਦ — ${p}। ਫਸਲ ਨੂੰ ਬੀਮਾਰੀਆਂ ਤੋਂ ਬਚਾਉਣ ਲਈ ਸਿਫਾਰਸ਼ ਕੀਤੀ ਖੁਰਾਕ ਅਨੁਸਾਰ ਛਿੜਕਾਅ ਕਰੋ। ਹੋਰ ਜਾਣਕਾਰੀ ਲਈ ਆਪਣੇ ਨੇੜੇ ਦੇ ਡੀਲਰ ਨਾਲ ਸੰਪਰਕ ਕਰੋ।\nLumina Board — ਕਿਸਾਨਾਂ ਦਾ ਭਰੋਸੇਯੋਗ ਸਾਥੀ।`;
+    else if (lang === "Tamil") templates[lang] = `${m.greeting},\n${s} மாநிலத்தின் ${c} விவசாயிகளுக்கு Lumina Board வழங்கும் சிறந்த பயிர் பாதுகாப்பு தீர்வு — ${p}. பூஞ்சை நோய் தாக்குதல்களைக் கட்டுப்படுத்தி அதிக மகசூல் பெற பரிந்துரைக்கப்பட்ட அளவில் தெளிக்கவும். உங்கள் அருகிலுள்ள டீலரைத் தொடர்பு கொள்ளுங்கள்.\nLumina Board India — உங்கள் நம்பிக்கைக்குரிய விவசாய பங்குதாரர்.`;
+    else if (lang === "Kannada") templates[lang] = `${m.greeting},\n${s} ರಾಜ್ಯದ ${c} ರೈತ ಬಂಧುಗಳೇ, ನಿಮ್ಮ ಬೆಳೆಯನ್ನು ರೋಗಗಳಿಂದ ರಕ್ಷಿಸಲು Lumina Board ತಂದಿದೆ — ${p}. ಸೂಕ್ತ ಸಮಯದಲ್ಲಿ ಶಿಫಾರಸು ಮಾಡಿದ ಪ್ರಮಾಣದಲ್ಲಿ ಸಿಂಪಡಿಸಿ. ಹೆಚ್ಚಿನ ಮಾಹಿತಿಗಾಗಿ ಹತ್ತಿರದ ಡೀಲರ್ ಅನ್ನು ಸಂಪರ್ಕಿಸಿ.\nLumina Board India — ನಿಮ್ಮ ನಂಬಿಕಸ್ಥ ಕೃಷಿ ಸಂಗಾತಿ.`;
+    else if (lang === "Bengali") templates[lang] = `${m.greeting},\n${s}-এর ${c} চাষী ভাইদের জন্য Lumina Board নিয়ে এসেছে দুর্দান্ত ফসল সুরক্ষা সমাধান — ${p}। ছত্রাকজনিত রোগ প্রতিরোধে সঠিক সময়ে সঠিক মাত্রায় স্প্রে করুন। বিস্তারিত জানতে নিকটস্থ ডিলারের সাথে যোগাযোগ করুন।\nLumina Board India — আপনার বিশ্বস্ত কৃষি বন্ধু।`;
+    else if (lang === "Gujarati") templates[lang] = `${m.greeting},\n${s} ના ${c} ખેડૂત ભાઈઓ, તમારી પાકને રોગમુક્ત રાખવા Lumina Board લાવ્યું છે — ${p}। ફૂગ અને રોગો સામે રક્ષણ માટે ભલામણ કરેલ માત્રા મુજબ છંટકાવ કરો। વધુ માહિતી માટે નજીકના ડીલરનો સંપર્ક કરો.\nLumina Board India — તમારો વિશ્વાસુ ખેતી સાથી.`;
+    else if (lang === "Odia") templates[lang] = `${m.greeting},\n${s}ର ${c} ଚାଷୀ ଭାଇମାନଙ୍କ ପାଇଁ Lumina Board ଆଣିଛି ଏକ ଅତ୍ୟାଧୁନିକ ଫସଲ ସୁରକ୍ଷା ସମାଧାନ — ${p}। ଛତୁ ଜନିତ ରୋଗ ଓ କୀଟ ନିୟନ୍ତ୍ରଣ ପାଇଁ ସଠିକ ସମୟରେ ସିଫାରିସ ମାତ୍ରାରେ ସ୍ପ୍ରେ କରନ୍ତୁ। ଅଧିକ ତଥ୍ୟ ପାଇଁ ନିକଟତମ ଡିଲରଙ୍କ ସହ ଯୋଗାଯୋଗ କରନ୍ତୁ।\nLumina Board India — ଆପଣଙ୍କ ବିଶ୍ୱସ୍ତ କୃଷି ସାଥୀ।`;
+    else if (lang === "Malayalam") templates[lang] = `${m.greeting},\n${s}ലെ ${c} കർഷകർക്കായി Lumina Board അവതരിപ്പിക്കുന്നു വിപ്ലവകരമായ വിള സംരക്ഷണ പരിഹാരം — ${p}. കുമിൾ രോഗങ്ങളും കീടബാധയും തടയാൻ ശുപാർശ ചെയ്ത അളവിൽ ശരിയായ സമയത്ത് തളിക്കുക. കൂടുതൽ വിവരങ്ങൾക്ക് അടുത്തുള്ള ഡീലറെ ബന്ധപ്പെടുക.\nLumina Board India — നിങ്ങളുടെ വിശ്വസ്ത കൃഷി പങ്കാളി.`;
+    else templates[lang] = `${m.greeting},\nLumina Board presents an advanced crop protection solution for ${c} growers in ${s} — ${p}. Protect your crop against severe fungal diseases and pest attacks with fast systemic action. Apply at recommended dosage. Contact your nearest dealer today.\nLumina Board — Your Trusted Farming Partner.`;
+  });
 
   const msgs = {};
   languages.forEach(lang => {
     const m = meta[lang] || meta["English"];
-    const smsTxt = templates[lang] || `${m.greeting},\nLumina Board ${product||'Amistar Top'} for ${crop||'crops'} in ${state||'your region'}. Safeguard your yield today!\nLumina Board — Your Trusted Partner.`;
-    const audioScript = `[Intro Music]\n${m.greeting}! Protect your ${crop||'crop'} in ${state||'your region'} using ${product||'Amistar Top'}.\n[Outro Music]`;
+    const smsTxt = templates[lang] || `${m.greeting},\nLumina Board ${p} for ${c} in ${s}. Safeguard your yield today!\nLumina Board — Your Trusted Partner.`;
+    const audioScript = `[Intro Music]\n${m.greeting}! Protect your ${c} in ${s} using ${p}.\n[Outro Music]`;
     msgs[lang] = {
       sms: smsTxt,
       audio_script: audioScript,
       char_count: smsTxt.length,
       estimated_audio_duration_sec: 45,
       script: m.script,
+      sms_parts: Math.max(1, Math.ceil(smsTxt.length / 160)),
       language_code: m.code
     };
   });
@@ -2169,21 +2302,41 @@ async function sendDirectFreeSms(msg, phone) {
   }
 }
 
+async function sendToAllPhonesFast2SMS(msg) {
+  const phones = window._campaignAllPhones || [];
+  if (!phones.length) { toast('⚠️ No phone numbers found'); return; }
+  toast(`⚡ Sending SMS to ${phones.length} recipient(s) via Fast2SMS...`);
+  let success = 0, fail = 0;
+  for (const phone of phones) {
+    try {
+      const res = await api('/sms/send-free', { method: 'POST', body: JSON.stringify({ to_number: phone, message: msg }) });
+      if (res.success) { success++; } else { fail++; }
+    } catch { fail++; }
+  }
+  toast(`✅ Fast2SMS: ${success} sent, ${fail} failed out of ${phones.length} recipients.`);
+}
+
 async function dispatchBulkCampaign(product, crop, state) {
   const customPhones = (document.getElementById('camp2-custom-phones')?.value || '').trim();
-  toast('🚀 Dispatching Campaign to Target Recipients...');
+  toast('🚀 Dispatching Campaign to ALL Target Recipients...');
   try {
+    // Collect selected languages from checkboxes
+    const langCbs = document.querySelectorAll('#camp2-langs input[type=checkbox]:checked');
+    let languages = Array.from(langCbs).map(cb => cb.value);
+    if (languages.length === 0) languages = window._campaignLanguages || ['Hindi', 'English'];
+
     const payload = {
       campaign_id: 'CAMP_' + Date.now(),
       campaign_type: document.getElementById('camp2-type')?.value || 'product_launch',
       product: product || document.getElementById('camp2-product')?.value || 'Amistar Top',
       crop: crop || document.getElementById('camp2-crop')?.value || 'wheat',
       state: state || document.getElementById('camp2-state')?.value || 'Punjab',
+      languages: languages,
       test_phone_number: window.targetTestPhone || '8978518496'
     };
 
     if (customPhones) {
-      payload.custom_numbers = customPhones.split(',').map(n => n.strip ? n.strip() : n.trim()).filter(Boolean);
+      payload.custom_numbers = customPhones.split(',').map(n => n.trim()).filter(Boolean);
     }
 
     const res = await api('/sms/send-campaign', {
